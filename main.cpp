@@ -466,6 +466,7 @@ void DoExit()
 const float rabbitSpeed = 2.0f;
 const float playerSpeed = 0.0175f;
 const float enemySpeed = 0.0176f;
+const float rabbitRadius = 2.0f;
 const float playerRadius = 0.25f;
 const float enemyRadius = 0.1f;
 const float proximity = 0.4f;
@@ -488,10 +489,12 @@ void SimulationInit()
 {
 	srand((unsigned)time(NULL));
 	float offset = 2.0;
-	wayPoints.push_back(MyVector(-offset, -offset));
-	wayPoints.push_back(MyVector(-offset, offset));
-	wayPoints.push_back(MyVector(offset, offset));
-	wayPoints.push_back(MyVector(offset, -offset));
+	float offsetX = Math::RandFloatMinMax(0, map.GetSizeX());
+	float offsetY = Math::RandFloatMinMax(0, map.GetSizeY());
+	wayPoints.push_back(MyVector(-offsetX, -offsetY));
+	wayPoints.push_back(MyVector(-offsetX, offsetY));
+	wayPoints.push_back(MyVector(offsetX, offsetY));
+	wayPoints.push_back(MyVector(offsetX, -offsetY));
 	intrusionPoints.push_back(MyVector(-1.2f*offset, -0.3f*offset));
 	intrusionPoints.push_back(MyVector(-1.2f*offset, 0.3f*offset));
 	intrusionPoints.push_back(MyVector(1.2f*offset, 0.3f*offset));
@@ -682,11 +685,14 @@ void RenderObjects()
 	glPopMatrix();
 
 
-	//for (unsigned int i = 0; i < wayPoints.size(); i++)
-	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), playerRadius + 0.1f, 1.0f, 0.0f, 0.0f);
+	
 	// Rabbit
 	glPushMatrix();
-	RenderFillCircle(rabbitPos.GetX(), rabbitPos.GetY(), enemyRadius, 1.0f, 1.0f, 0.0f);
+
+	//for (unsigned int i = 0; i < wayPoints.size(); i++)
+	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), rabbitRadius + 10.0f, 1.0f, 0.0f, 0.0f);
+
+	RenderFillCircle(rabbitPos.randomX(), rabbitPos.randomY(), rabbitRadius + 10.f, 1.0f, 1.0f, 0.0f);
 	glPopMatrix();
 }
 
