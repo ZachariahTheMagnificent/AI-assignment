@@ -48,6 +48,11 @@ Map map;
 class Base
 {
 public:
+	Vector3 GetPosition()
+	{
+		return position;
+	}
+
 	void Update(const double time)
 	{
 		if (time == 1.f)
