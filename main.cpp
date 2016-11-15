@@ -692,7 +692,7 @@ void RenderObjects()
 	//for (unsigned int i = 0; i < wayPoints.size(); i++)
 	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), rabbitRadius + 10.0f, 1.0f, 0.0f, 0.0f);
 
-	RenderFillCircle(rabbitPos.randomX(), rabbitPos.randomY(), rabbitRadius + 10.f, 1.0f, 1.0f, 0.0f);
+	RenderFillCircle(rabbitPos.GetX(), rabbitPos.GetY(), rabbitRadius + 10.f, 1.0f, 1.0f, 0.0f);
 	glPopMatrix();
 }
 
