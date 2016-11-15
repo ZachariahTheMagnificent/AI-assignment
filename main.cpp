@@ -13,6 +13,7 @@
 #include <ft2build.h>
 #include <vector>
 #include "Vector3.h"
+#include "Random.h"
 #include FT_FREETYPE_H
 using namespace std;
 
@@ -23,6 +24,7 @@ float current_time = 0.0f;
 
 double last_frame_timestamp;
 double delta_time;
+Random rng;
 
 class Map
 {
@@ -679,7 +681,7 @@ void RenderObjects()
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(0.0f, 3.0f, -10.0f);
+	glTranslatef(0.0f, rng.RandFloat(0, 10), -10.0f);
 	glScalef(0.5f, 0.5f, 0.0f);
 	RenderFillCircle(0, 0, 0.5, 1.0f, 1.0f, 1.0f);
 	glPopMatrix();
@@ -692,6 +694,9 @@ void RenderObjects()
 	//for (unsigned int i = 0; i < wayPoints.size(); i++)
 	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), rabbitRadius + 10.0f, 1.0f, 0.0f, 0.0f);
 
+	rabbitPos.y = rng.RandFloat(-20, 20);
+
+	glTranslatef(0.0f, rng.RandFloat(0, 10), -10.0f);
 	RenderFillCircle(rabbitPos.GetX(), rabbitPos.GetY(), rabbitRadius + 10.f, 1.0f, 1.0f, 0.0f);
 	glPopMatrix();
 }
