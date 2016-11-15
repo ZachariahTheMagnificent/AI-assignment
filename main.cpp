@@ -458,6 +458,7 @@ void DoExit()
 //int state; // Current state value
 //const int PATROL = 0; // Possible state definition
 //const int CHASE = 1;
+const float rabbitSpeed = 2.0f;
 const float playerSpeed = 0.0175f;
 const float enemySpeed = 0.0176f;
 const float playerRadius = 0.25f;
@@ -465,7 +466,7 @@ const float enemyRadius = 0.1f;
 const float proximity = 0.4f;
 int waypointIndex;
 bool arrived;
-MyVector playerPos, enemyPos;
+MyVector playerPos, enemyPos, rabbitPos;
 vector <MyVector> wayPoints, intrusionPoints;
 
 MyVector nextPoint;
@@ -675,6 +676,13 @@ void RenderObjects()
 	RenderFillCircle(0, 0, 0.5, 1.0f, 1.0f, 1.0f);
 	glPopMatrix();
 
+
+	//for (unsigned int i = 0; i < wayPoints.size(); i++)
+	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), playerRadius + 0.1f, 1.0f, 0.0f, 0.0f);
+	// Rabbit
+	glPushMatrix();
+	RenderFillCircle(rabbitPos.GetX(), rabbitPos.GetY(), enemyRadius, 1.0f, 1.0f, 0.0f);
+	glPopMatrix();
 }
 
 void RunFSM()
@@ -712,6 +720,11 @@ void Update()
 		current_time = 0.0f;
 	}
 
+	//if day time, WABBITS
+	if (current_time < 50.0f)
+	{
+
+	}
 	/*if (state != CHASE)
 	{
 		if (stack.size() == 0)
