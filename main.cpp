@@ -75,7 +75,10 @@ class Base : public Entity
 public:
 	void Update(const double time) override
 	{
-
+		if (time == 1.f)
+		{
+			++num_bows;
+		}
 	}
 
 	//Used by archers
