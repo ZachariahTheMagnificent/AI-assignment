@@ -24,33 +24,9 @@ float current_time = 0.0f;
 double last_frame_timestamp;
 double delta_time;
 
-//Interface for all entities in our world from ai like archers and rabbits to structures like bases and walls.
-class Entity
-{
-public:
-	virtual void Update(const double time) = 0;
-	Vector3 GetPosition()
-	{
-		return position;
-	}
-	virtual bool IsRabbit()
-	{
-		return false;
-	}
-
-protected:
-	Vector3 position;
-};
-
-//Used to define the size of the map of the game and the position of all entities in it.
 class Map
 {
 public:
-	std::vector<Entity>& GetEntities()
-	{
-		return entities;
-	}
-
 	float GetSizeX() const
 	{
 		return map_size_x;
@@ -62,18 +38,17 @@ public:
 	}
 
 private:
-	std::vector<Entity> entities;
+	Vector3 position;
 	float map_size_x;
 	float map_size_y;
 };
 
 Map map;
 
-//The base that the humans are supposed to protect
-class Base : public Entity
+class Base
 {
 public:
-	void Update(const double time) override
+	void Update(const double time)
 	{
 		if (time == 1.f)
 		{
@@ -113,6 +88,7 @@ public:
 	}
 
 private:
+	Vector3 position;
 	float half_size_x;
 	float half_size_y;
 	unsigned num_bows;
@@ -121,7 +97,7 @@ private:
 Base base;
 
 //Defenders of the base
-class Archer : public Entity
+class Archer
 {
 public:
 	enum class A_STATE
@@ -164,7 +140,7 @@ public:
 		}
 	}
 
-	void Update(const double time) override
+	void Update(const double time)
 	{
 		switch (state)
 		{
@@ -231,9 +207,29 @@ public:
 	}
 
 private:
+	Vector3 position;
 	A_STATE state;
 	Vector3 roam_position;
+	float base_starting_region_x;
+	float base_starting_region_y;
+	float base_ending_region_x;
+	float base_ending_region_y;
 };
+
+class TrackingSystem
+{
+public:
+	static const unsigned TOTAL_ARCHERS = 27;
+
+	Archer* GetArchers()
+	{
+		return archers;
+	}
+
+private:
+	Archer archers[TOTAL_ARCHERS];
+};
+
 class Monster
 {
 public:
