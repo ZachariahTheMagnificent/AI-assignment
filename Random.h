@@ -1,9 +1,10 @@
+#pragma once
 #include <random>
 
-class Random
+class RNG
 {
 public:
-	Random();
+	RNG();
 
 	int RandInt(const int min, const int max);
 	float RandFloat(const float min, const float max);

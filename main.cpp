@@ -14,6 +14,10 @@
 #include <vector>
 #include "Vector3.h"
 #include "Random.h"
+#include "Base.h"
+#include "Map.h"
+#include "Archer.h"
+#include "Rabbit.h"
 #include FT_FREETYPE_H
 using namespace std;
 
@@ -24,231 +28,13 @@ float current_time = 0.0f;
 
 double last_frame_timestamp;
 double delta_time;
-Random rng;
-
-class Map
-{
-public:
-	float GetSizeX() const
-	{
-		return map_size_x;
-	}
-
-	float GetSizeY() const
-	{
-		return map_size_y;
-	}
-
-private:
-	Vector3 position;
-	float map_size_x;
-	float map_size_y;
-};
-
-Map map;
-
-class Base
-{
-public:
-	Vector3 GetPosition()
-	{
-		return position;
-	}
-
-	void Update(const double time)
-	{
-		if (time == 1.f)
-		{
-			++num_bows;
-		}
-	}
-
-	//Used by archers
-	void GrabBow()
-	{
-		--num_bows;
-	}
-
-	unsigned GetNumBows()
-	{
-		return num_bows;
-	}
-
-	float StartingRegionX()
-	{
-		return position.x - half_size_x;
-	}
-
-	float StartingRegionY()
-	{
-		return position.y - half_size_y;
-	}
-
-	float EndingRegionX()
-	{
-		return position.x + half_size_x;
-	}
-
-	float EndingRegionY()
-	{
-		return position.y + half_size_y;
-	}
-
-private:
-	Vector3 position;
-	float half_size_x;
-	float half_size_y;
-	unsigned num_bows;
-};
-
+RNG rng;
+Map map(5, 5);
 Base base;
+ArcherSystem archer_system(map, base);
+RabbitSystem rabbit_system(map, base, rng);
 
-//Defenders of the base
-class Archer
-{
-public:
-	enum class A_STATE
-	{
-		UNRECRUITED,
-		GRAB_TOOL,
-		HUNT,
-		DEFEND,
-		REPOSITION,
-		END
-	};
 
-	//Set a random position outside the walls for archers to roam to when hunting
-	void SetRoamingPosition()
-	{
-		//get the perimeter of the base.
-		const float base_starting_region_x = base.StartingRegionX();
-		const float base_starting_region_y = base.StartingRegionY();
-		const float base_ending_region_x = base.EndingRegionX();
-		const float base_ending_region_y = base.EndingRegionY();
-
-		while (true)
-		{
-			//generate a value within the map perimeter.
-			roam_position.x = Math::RandFloatMinMax(0, map.GetSizeX());
-
-			//If value is outside base
-			if (roam_position.x < base_starting_region_x || roam_position.x > base_ending_region_x)
-			{
-				break;
-			}
-		}
-		while (true)
-		{
-			roam_position.y = Math::RandFloatMinMax(0, map.GetSizeY());
-			if (roam_position.y < base_starting_region_y || roam_position.y > base_ending_region_y)
-			{
-				break;
-			}
-		}
-	}
-
-	void Update(const double time)
-	{
-		switch (state)
-		{
-		case A_STATE::UNRECRUITED:
-			//If there are tools for the archers to grab.
-			if (base.GetNumBows() > 0)
-			{
-				state = A_STATE::GRAB_TOOL;
-			}
-			break;
-		case A_STATE::GRAB_TOOL:
-		{
-			const Vector3 archer_to_base = (base.GetPosition() - position);
-			const float epsilon = 1;
-
-			//if archer is close to base
-			if (archer_to_base.LengthSquared() == epsilon * epsilon)
-			{
-				base.GrabBow();
-				//if nighttime
-				if (current_time > 50)
-				{
-					state = A_STATE::REPOSITION;
-				}
-				else
-				{
-					SetRoamingPosition();
-					state = A_STATE::HUNT;
-				}
-			}
-			const float speed = 7;
-			const Vector3 direction = archer_to_base.Normalized();
-			position += direction * speed * time;
-			break;
-		}
-		case A_STATE::HUNT:
-		{
-			const Vector3 archer_to_roam = roam_position - position;
-			const float epsilon = 1;
-			//if nighttime
-			if (current_time > 50)
-			{
-				state = A_STATE::REPOSITION;
-			}
-			//If reach roaming position
-			else if (archer_to_roam.LengthSquared() == epsilon * epsilon)
-			{
-				SetRoamingPosition();
-			}
-			const float speed = 7;
-			const Vector3 direction = archer_to_roam.Normalized();
-			position += direction * speed * time;
-
-			//rabbit hunting code here
-			//for (auto& entity)
-
-			break;
-		}
-		case A_STATE::DEFEND:
-			break;
-		case A_STATE::REPOSITION:
-			break;
-		}
-	}
-
-private:
-	Vector3 position;
-	A_STATE state;
-	Vector3 roam_position;
-	float base_starting_region_x;
-	float base_starting_region_y;
-	float base_ending_region_x;
-	float base_ending_region_y;
-};
-
-class TrackingSystem
-{
-public:
-	static const unsigned TOTAL_ARCHERS = 27;
-
-	Archer* GetArchers()
-	{
-		return archers;
-	}
-
-private:
-	Archer archers[TOTAL_ARCHERS];
-};
-
-class Monster
-{
-public:
-	enum class M_STATE
-	{
-		ATK_ARCHER,
-		ATK_STRUCTURE,
-		FLEE,
-		DEAD,
-		END
-	};
-};
 
 enum class TIME
 {
@@ -465,16 +251,16 @@ void DoExit()
 //int state; // Current state value
 //const int PATROL = 0; // Possible state definition
 //const int CHASE = 1;
-const float rabbitSpeed = 2.0f;
+const float rabbitSpeed = 0.0190f;
 const float playerSpeed = 0.0175f;
 const float enemySpeed = 0.0176f;
-const float rabbitRadius = 2.0f;
+const float rabbitRadius = 0.0176f;
 const float playerRadius = 0.25f;
 const float enemyRadius = 0.1f;
 const float proximity = 0.4f;
 int waypointIndex;
 bool arrived;
-MyVector playerPos, enemyPos, rabbitPos;
+MyVector playerPos, enemyPos, rabbitPos[10];
 vector <MyVector> wayPoints, intrusionPoints;
 
 MyVector nextPoint;
@@ -491,12 +277,12 @@ void SimulationInit()
 {
 	srand((unsigned)time(NULL));
 	float offset = 2.0;
-	float offsetX = Math::RandFloatMinMax(0, map.GetSizeX());
-	float offsetY = Math::RandFloatMinMax(0, map.GetSizeY());
-	wayPoints.push_back(MyVector(-offsetX, -offsetY));
-	wayPoints.push_back(MyVector(-offsetX, offsetY));
-	wayPoints.push_back(MyVector(offsetX, offsetY));
-	wayPoints.push_back(MyVector(offsetX, -offsetY));
+	wayPoints.push_back(MyVector(-offset, -offset));
+	wayPoints.push_back(MyVector(-offset, offset));
+	wayPoints.push_back(MyVector(offset, offset));
+	wayPoints.push_back(MyVector(offset, -offset));
+	wayPoints.push_back(MyVector(-4.0, -offset));
+	wayPoints.push_back(MyVector(-4.0, -4.0));
 	intrusionPoints.push_back(MyVector(-1.2f*offset, -0.3f*offset));
 	intrusionPoints.push_back(MyVector(-1.2f*offset, 0.3f*offset));
 	intrusionPoints.push_back(MyVector(1.2f*offset, 0.3f*offset));
@@ -512,6 +298,15 @@ void SimulationInit()
 
 int main()
 {
+	std::vector<Rabbit> rabbits;
+	for (int i = 0; i < rabbits.size(); i++)
+	{
+		rabbits[i].Update(0.f);
+	}
+	for (Rabbit& rabbit : rabbits)
+	{
+		rabbit.Update();
+	}
 	// INIT ///////////////////////////////////////////////////////////////
 	char *title = "Patrol";
 	width = 640;
@@ -615,7 +410,7 @@ void RenderObjects()
 	//RenderFillCircle(enemyPos.GetX(), enemyPos.GetY(), enemyRadius, 0.0f, 1.0f, 0.0f);
 	//// Waypoints
 	//for (unsigned int i = 0; i < wayPoints.size(); i++)
-	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), playerRadius + 0.1f, 1.0f, 0.0f, 0.0f);
+		//RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), playerRadius + 0.1f, 1.0f, 0.0f, 0.0f);
 
 	//glPopMatrix();
 
@@ -681,24 +476,28 @@ void RenderObjects()
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(0.0f, rng.RandFloat(0, 10), -10.0f);
+	glTranslatef(0.0f, 3.0f, -10.0f);
 	glScalef(0.5f, 0.5f, 0.0f);
 	RenderFillCircle(0, 0, 0.5, 1.0f, 1.0f, 1.0f);
 	glPopMatrix();
 
-
-	
 	// Rabbit
 	glPushMatrix();
-
-	//for (unsigned int i = 0; i < wayPoints.size(); i++)
-	//	RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), rabbitRadius + 10.0f, 1.0f, 0.0f, 0.0f);
-
-	rabbitPos.y = rng.RandFloat(-20, 20);
-
-	glTranslatef(0.0f, rng.RandFloat(0, 10), -10.0f);
-	RenderFillCircle(rabbitPos.GetX(), rabbitPos.GetY(), rabbitRadius + 10.f, 1.0f, 1.0f, 0.0f);
+	glTranslatef(0.0f, 0.0f, -10.0f);
+	for (unsigned int i = 0; i < wayPoints.size(); i++)
+		RenderCircle(wayPoints[i].GetX(), wayPoints[i].GetY(), rabbitRadius + 0.1f, 1.0f, 0.0f, 0.0f);
 	glPopMatrix();
+	//rabbitPos.y = rng.RandFloat(-20, 20);
+
+	for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
+	{
+		const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
+		glPushMatrix();
+		glTranslatef(0.0f, 0.0f, -10.0f);
+		RenderFillCircle(Rabbitpos.x, Rabbitpos.y, rabbitRadius + 0.1f, 1.0f, 1.0f, 0.0f);
+		glPopMatrix();
+	}
+	
 }
 
 void RunFSM()
@@ -739,7 +538,42 @@ void Update()
 	//if day time, WABBITS
 	if (current_time < 50.0f)
 	{
-
+		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
+		{
+			rabbit_system.GetRabbits()[i].Update(delta_time);
+		}
+		if (stack.size() == 0)
+			nextPoint = wayPoints[waypointIndex];
+		else
+			nextPoint = stack[stack.size() - 1];
+		MyVector direction = (rabbitPos[0] -nextPoint).Normalize();
+		//direction = (rabbitPos[1] - nextPoint).Normalize();
+		float distance = GetDistance(rabbitPos[0].GetX(), rabbitPos[0].GetY(), nextPoint.GetX(), nextPoint.GetY());
+		//distance = GetDistance(rabbitPos[1].GetX(), rabbitPos[1].GetY(), nextPoint.GetX(), nextPoint.GetY());
+		if (distance < rabbitSpeed)
+		{
+			//rabbitPos[0] = ;
+			//rabbitPos[1] = nextPoint;
+			arrived = true;
+		}
+		else
+		{
+			rabbitPos[0] = rabbitPos[0] + direction*rabbitSpeed;
+			//rabbitPos[1] = rabbitPos[1] + direction*rabbitSpeed;
+		}
+		if (arrived)
+		{
+			if (stack.size() == 0)
+			{
+				if (waypointIndex == wayPoints.size() - 1)
+					waypointIndex = 0;
+				else
+					waypointIndex = RandomInteger(1,5);
+			}
+			else
+				stack.clear();
+			arrived = false;
+		}
 	}
 	/*if (state != CHASE)
 	{

@@ -92,8 +92,13 @@
     <ClCompile Include="Vector3.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Archer.h" />
+    <ClInclude Include="Base.h" />
     <ClInclude Include="CheckIfVectorsCollide.h" />
+    <ClInclude Include="Map.h" />
+    <ClInclude Include="Monster.h" />
     <ClInclude Include="MyMath.h" />
+    <ClInclude Include="Rabbit.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>
