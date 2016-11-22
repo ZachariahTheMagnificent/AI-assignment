@@ -28,9 +28,10 @@ float current_time = 0.0f;
 
 double last_frame_timestamp;
 double delta_time;
+
 RNG rng;
-Map map(5, 5);
-Base base;
+Map map(10, 10);
+Base base(4, 4);
 ArcherSystem archer_system(map, base);
 RabbitSystem rabbit_system(map, base, rng);
 
@@ -298,15 +299,6 @@ void SimulationInit()
 
 int main()
 {
-	std::vector<Rabbit> rabbits;
-	for (int i = 0; i < rabbits.size(); i++)
-	{
-		rabbits[i].Update(0.f);
-	}
-	for (Rabbit& rabbit : rabbits)
-	{
-		rabbit.Update();
-	}
 	// INIT ///////////////////////////////////////////////////////////////
 	char *title = "Patrol";
 	width = 640;
@@ -489,13 +481,17 @@ void RenderObjects()
 	glPopMatrix();
 	//rabbitPos.y = rng.RandFloat(-20, 20);
 
-	for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
+	//if DAY time, rabbits spawn
+	if (current_time < 50.0f)
 	{
-		const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
-		glPushMatrix();
-		glTranslatef(0.0f, 0.0f, -10.0f);
-		RenderFillCircle(Rabbitpos.x, Rabbitpos.y, rabbitRadius + 0.1f, 1.0f, 1.0f, 0.0f);
-		glPopMatrix();
+		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
+		{
+			const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
+			glPushMatrix();
+			glTranslatef(0.0f, 0.0f, -10.0f);
+			RenderFillCircle(Rabbitpos.x, Rabbitpos.y, rabbitRadius + 0.1f, 1.0f, 1.0f, 0.0f);
+			glPopMatrix();
+		}
 	}
 	
 }
@@ -642,7 +638,7 @@ void Render( GLFWwindow* window )
 
 		FT_Set_Pixel_Sizes( face, 0, 50 );
 
-		if (current_time < 10)
+		if (current_time < 50.0f)
 		{
 			RenderText("DAY", face, -0.8f, 0.925f, 0.55f, 0.55f);
 		}

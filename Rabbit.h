@@ -12,9 +12,12 @@ public:
 	enum class A_STATE
 	{
 		ROAMING,
+		STOP,
 		DEAD,
 		END
 	};
+
+	const float Rabbitspeed = 1.0f;
 
 	Rabbit(Map& map, Base& base, RNG &rng)
 		:
@@ -23,12 +26,17 @@ public:
 		rand(rng)
 	{
 		state = A_STATE::ROAMING;
-		SetRoamingPosition();
+		position = GetRandomPositionOutsideBase();
+		roam_position = GetRandomPositionOutsideBase();
+		rabbitVel = Vel(Rabbitspeed);
+		stoptimer = 0.0f;
 	}
 
 	//Set a random position outside the walls for archers to roam to when hunting
 	Vector3 GetRandomPositionOutsideBase()
 	{
+		Vector3 random_position;
+
 		//get the perimeter of the base.
 		const float base_starting_region_x = base.StartingRegionX();
 		const float base_starting_region_y = base.StartingRegionY();
@@ -43,24 +51,24 @@ public:
 		while (true)
 		{
 			//generate a value within the map perimeter.
-			roam_position.x = Math::RandFloatMinMax(map_starting_region_x, map_ending_region_x);
+			random_position.x = Math::RandFloatMinMax(map_starting_region_x, map_ending_region_x);
 
 			//If value is outside base
-			if (roam_position.x < base_starting_region_x || roam_position.x > base_ending_region_x)
+			if (random_position.x < base_starting_region_x || random_position.x > base_ending_region_x)
 			{
 				break;
 			}
 		}
 		while (true)
 		{
-			roam_position.y = Math::RandFloatMinMax(map_starting_region_y, map_ending_region_y);
-			if (roam_position.y < base_starting_region_y || roam_position.y > base_ending_region_y)
+			random_position.y = Math::RandFloatMinMax(map_starting_region_y, map_ending_region_y);
+			if (random_position.y < base_starting_region_y || random_position.y > base_ending_region_y)
 			{
 				break;
 			}
 		}
-		const float Rabbitspeed = 1.0f;
-		rabbitVel = Vel(Rabbitspeed);
+
+		return random_position;
 	}
 
 	void Update(const double time)
@@ -72,9 +80,24 @@ public:
 				position += rabbitVel*time;
 				if (Dir().Dot(rabbitVel) < 0)
 				{
-					SetRoamingPosition();
+					roam_position = GetRandomPositionOutsideBase();
+					rabbitVel = Vel(Rabbitspeed);
+				}
+				const int randStop = rand.RandInt(0,100);
+				if (randStop == 1 || randStop == 2)
+				{
+					state = A_STATE::STOP;
 				}
 				break;
+			}
+			case A_STATE::STOP:
+			{
+				stoptimer += time;
+				if (stoptimer >= 5.0f)
+				{
+					stoptimer = 0;
+					state = A_STATE::ROAMING;
+				}
 			}
 			case A_STATE::DEAD:
 			{
@@ -94,6 +117,7 @@ private:
 	A_STATE state;
 	Vector3 roam_position;
 	RNG& rand;
+	double stoptimer;
 
 	Vector3 Dir()
 	{

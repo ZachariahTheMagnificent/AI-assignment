@@ -4,6 +4,13 @@
 class Base
 {
 public:
+	Base(const float half_size_x, const float half_size_y)
+	:
+	half_size_x(half_size_x),
+	half_size_y(half_size_y)
+	{
+	}
+
 	Vector3 GetPosition()
 	{
 		return position;
