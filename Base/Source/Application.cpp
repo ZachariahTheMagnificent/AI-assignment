@@ -12,7 +12,6 @@
 #include <stdlib.h>
 
 #include "SceneKinematics.h"
-#include "SceneCollision.h"
 
 GLFWwindow* m_window;
 const unsigned char FPS = 60; // FPS of this game
@@ -90,10 +89,10 @@ void Application::Init()
 
 
 	//Create a window and create its OpenGL context
-	m_width = 1920;
-	m_height = 1080;
+	m_width = 800;
+	m_height = 600;
+	m_window = glfwCreateWindow(m_width, m_height, "Physics", NULL, NULL);
 	//m_window = glfwCreateWindow(m_width, m_height, "Physics", glfwGetPrimaryMonitor(), NULL);
-	m_window = glfwCreateWindow(m_width, m_height, "Physics", NULL, NULL); 
 
 	//If the window couldn't be created
 	if (!m_window)
@@ -125,7 +124,7 @@ void Application::Init()
 void Application::Run()
 {
 	//Main Loop
-	Scene *scene = new SceneCollision();
+	Scene *scene = new SceneKinematics();
 	scene->Init();
 
 	m_timer.startTimer();    // Start timer to calculate how long it takes to render this frame

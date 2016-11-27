@@ -6,15 +6,44 @@
 #include "Application.h"
 #include "Utility.h"
 #include "LoadTGA.h"
+#include <vector>
+#include "Vector3.h"
 #include <sstream>
 
+
+struct MyVector
+{
+	float x, y;
+	MyVector() :x(0), y(0){}
+	MyVector(float x, float y) :x(x), y(y){}
+	void SetPosition(float _x, float _y){ x = _x; y = _y; }
+	float GetX(){ return x; }
+	float GetY(){ return y; }
+	float Magnitude(){ return sqrt(x*x + y*y); }
+	MyVector Normalize(){ float length = Magnitude(); return MyVector(x / length, y / length); }
+	MyVector operator + (MyVector u){ return MyVector(x + u.x, y + u.y); }
+	MyVector operator - (MyVector u){ return MyVector(u.x - x, u.y - y); }
+	MyVector operator += (MyVector u){ return MyVector(x + u.x, y + u.y); }
+	MyVector operator ~(){ return MyVector(-x, -y); }
+	MyVector operator *(float scale){ return MyVector(x*scale, y*scale); }
+	float operator * (MyVector  v){ return  x*v.x + y*v.y; }
+};
 SceneKinematics::SceneKinematics()
+:
+m_worldHeight(300.f),
+m_worldWidth(400.f),
+map(m_worldWidth*0.5, m_worldHeight*0.5, m_worldWidth, m_worldHeight),
+base(m_worldWidth*0.5, m_worldHeight*0.5, 92, 92),
+archer_system(map, base),
+rabbit_system(map, base, rng),
+current_time(0.0f)
 {
 }
 
 SceneKinematics::~SceneKinematics()
 {
 }
+
 
 void SceneKinematics::Init()
 {
@@ -23,10 +52,10 @@ void SceneKinematics::Init()
 	// Enable depth test
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the camera than the former one
-	glDepthFunc(GL_LESS);
-
+	glDepthFunc(GL_LESS); 
+	
 	glEnable(GL_CULL_FACE);
-
+	
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glEnable(GL_BLEND);
@@ -35,8 +64,8 @@ void SceneKinematics::Init()
 	glGenVertexArrays(1, &m_vertexArrayID);
 	glBindVertexArray(m_vertexArrayID);
 
-	m_programID = LoadShaders("Shader//comg.vertexshader", "Shader//comg.fragmentshader");
-
+	m_programID = LoadShaders( "Shader//comg.vertexshader", "Shader//comg.fragmentshader" );
+	
 	// Get a handle for our uniform
 	m_parameters[U_MVP] = glGetUniformLocation(m_programID, "MVP");
 	//m_parameters[U_MODEL] = glGetUniformLocation(m_programID, "M");
@@ -66,7 +95,7 @@ void SceneKinematics::Init()
 	// Get a handle for our "textColor" uniform
 	m_parameters[U_TEXT_ENABLED] = glGetUniformLocation(m_programID, "textEnabled");
 	m_parameters[U_TEXT_COLOR] = glGetUniformLocation(m_programID, "textColor");
-
+	
 	// Use our shader
 	glUseProgram(m_programID);
 
@@ -81,7 +110,7 @@ void SceneKinematics::Init()
 	lights[0].cosInner = cos(Math::DegreeToRadian(30));
 	lights[0].exponent = 3.f;
 	lights[0].spotDirection.Set(0.f, 1.f, 0.f);
-
+	
 	glUniform1i(m_parameters[U_NUMLIGHTS], 0);
 	glUniform1i(m_parameters[U_TEXT_ENABLED], 0);
 
@@ -97,13 +126,15 @@ void SceneKinematics::Init()
 
 	camera.Init(Vector3(0, 0, 1), Vector3(0, 0, 0), Vector3(0, 1, 0));
 
-	for (int i = 0; i < NUM_GEOMETRY; ++i)
+	for(int i = 0; i < NUM_GEOMETRY; ++i)
 	{
 		meshList[i] = NULL;
 	}
 	meshList[GEO_AXES] = MeshBuilder::GenerateAxes("reference", 1000, 1000, 1000);
 	meshList[GEO_BALL] = MeshBuilder::GenerateSphere("ball", Color(1, 1, 1), 10, 10, 1.f);
+	meshList[GEO_MOTHERBASE] = MeshBuilder::GenerateSphere("motherbase", Color(0, 1, 0), 10, 10, 1.f);
 	meshList[GEO_CUBE] = MeshBuilder::GenerateCube("cube", Color(1, 1, 1), 2.f);
+	meshList[GEO_WALL] = MeshBuilder::GenerateQuad("wall", Color(0, 1, 0), 2.f);
 	meshList[GEO_TEXT] = MeshBuilder::GenerateText("text", 16, 16);
 	meshList[GEO_TEXT]->textureID = LoadTGA("Image//calibri.tga");
 	meshList[GEO_TEXT]->material.kAmbient.Set(1, 0, 0);
@@ -112,217 +143,90 @@ void SceneKinematics::Init()
 
 	//Physics code here
 	m_speed = 1.f;
-
+	
 	m_gravity.Set(0, -9.8f, 0); //init gravity as 9.8ms-2 downwards
 	Math::InitRNG();
 
 	m_ghost = new GameObject(GameObject::GO_BALL);
 	//Exercise 1: construct 10 GameObject with type GO_BALL and add into m_goList
-	for (int i = 0; i < 100; ++i)
-	{
-		GameObject* test;
-		m_goList.push_back(new GameObject(GameObject::GO_BALL));
-	}
-
-	m_timeGO = NULL;
 }
 
 void SceneKinematics::Update(double dt)
 {
 	//Keyboard Section
-	if (Application::IsKeyPressed('1'))
+	if(Application::IsKeyPressed('1'))
 		glEnable(GL_CULL_FACE);
-	if (Application::IsKeyPressed('2'))
+	if(Application::IsKeyPressed('2'))
 		glDisable(GL_CULL_FACE);
-	if (Application::IsKeyPressed('3'))
+	if(Application::IsKeyPressed('3'))
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	if (Application::IsKeyPressed('4'))
+	if(Application::IsKeyPressed('4'))
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	if (Application::IsKeyPressed(VK_OEM_PLUS))
+	
+	if(Application::IsKeyPressed('+'))
 	{
 		//Exercise 6: adjust simulation speed
-		m_speed += 0.1f;
-		if (m_speed > 100.f)
-			m_speed = 100.f;
 	}
-	if (Application::IsKeyPressed(VK_OEM_MINUS))
+	if(Application::IsKeyPressed('-'))
 	{
 		//Exercise 6: adjust simulation speed
-		m_speed -= 0.1f;
-		if (m_speed < 0.f)
-			m_speed = 0.f;
 	}
-	if (Application::IsKeyPressed('C'))
+	if(Application::IsKeyPressed('c'))
 	{
 		//Exercise 9: clear screen
-		for (auto go : m_goList)
-			go->active = false;
 	}
-	if (Application::IsKeyPressed(VK_SPACE))
+	if(Application::IsKeyPressed(' '))
 	{
 		//Exercise 9: spawn balls
-		int count = 0;
-		for (auto q : m_goList)
-		{
-			if (!q->active)
-			{
-				q->active = true;
-				q->type = GameObject::GO_BALL;
-				q->pos.Set(Math::RandFloatMinMax(0.f, m_worldWidth), Math::RandFloatMinMax(0, m_worldHeight), 0);
-				q->vel.Set(Math::RandFloatMinMax(-50, 50), Math::RandFloatMinMax(-50, 50), 0);
-				if (++count == 10)
-					break;
-			}
-		}
 	}
-	if (Application::IsKeyPressed('V'))
+	if(Application::IsKeyPressed('v'))
 	{
 		//Exercise 9: spawn obstacles
-		int count = 0;
-		for (auto q : m_goList)
-		{
-			if (!q->active)
-			{
-				q->active = true;
-				q->type = GameObject::GO_CUBE;
-				q->pos.Set(Math::RandFloatMinMax(0.f, m_worldWidth), Math::RandFloatMinMax(0, m_worldHeight), 0);
-				q->vel.Set(Math::RandFloatMinMax(-50, 50), Math::RandFloatMinMax(-50, 50), 0);
-				if (++count == 10)
-					break;
-			}
-		}
 	}
 
 	//Mouse Section
 	static bool bLButtonState = false;
 	//Exercise 10: ghost code here
-	if (!bLButtonState && Application::IsMousePressed(0))
+	if(!bLButtonState && Application::IsMousePressed(0))
 	{
 		bLButtonState = true;
 		std::cout << "LBUTTON DOWN" << std::endl;
-
+		
 		double x, y;
 		Application::GetCursorPos(&x, &y);
 		int w = Application::GetWindowWidth();
 		int h = Application::GetWindowHeight();
 
 		//Exercise 10: spawn ghost ball
-		/*if (m_ghost->active)
-		{*/
-		m_ghost->active = true;
-		m_ghost->type = GameObject::GO_BALL;
-		m_ghost->vel.Set(0, 0);
-		m_ghost->scale.Set(1, 1, 1);
-
-		/*double x, y;
-		Application::GetCursorPos(&x, &y);
-		int w = Application::GetWindowWidth();
-		int h = Application::GetWindowHeight();*/
-		float worldX = x * m_worldWidth / w;
-		float worldY = (h - y) * m_worldHeight / h;
-
-		m_ghost->pos.Set(worldX, worldY, 0);
-		//}
 	}
-	else if (bLButtonState && !Application::IsMousePressed(0))
+	else if(bLButtonState && !Application::IsMousePressed(0))
 	{
 		bLButtonState = false;
 		std::cout << "LBUTTON UP" << std::endl;
-
+		
 		//Exercise 4: spawn ball
-		for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
-		{
-			GameObject *go = (GameObject *)*it;
-			if (!go->active)
-			{
-				go->active = true;
-				go->type = GameObject::GO_BALL;
-
-				double x, y;
-				Application::GetCursorPos(&x, &y);
-				int w = Application::GetWindowWidth();
-				int h = Application::GetWindowHeight();
-				float worldX = x * m_worldWidth / w;
-				float worldY = (h - y) * m_worldHeight / h;
-
-				go->pos = m_ghost->pos;
-				go->vel = m_ghost->pos - Vector3(worldX, worldY, 0);
-				go->vel *= 5.f;
-				m_ghost->active = false;
-				m_ghost->vel = go->vel;
-				m_timeGO = go;
-				break;
-			}
-
-		}
-
+						
 		//Exercise 10: replace Exercise 4 code and use ghost to determine ball velocity
-		if (m_ghost->active)
-		{
-			double x, y;
-			Application::GetCursorPos(&x, &y);
-			int w = Application::GetWindowWidth();
-			int h = Application::GetWindowHeight();
-			float worldX = x * m_worldWidth / w;
-			float worldY = (h - y) * m_worldHeight / h;
-
-			Vector3 ghostVelocity = m_ghost->pos - Vector3(worldX, worldY, 0);
-			m_ghost->vel.Set(ghostVelocity.x, ghostVelocity.y, ghostVelocity.z);
-
-		}
 
 		//Exercise 11: kinematics equation
 		//v = u + a * t
 		//t = (v - u ) / a
-		float v = 0;
-		float u = -m_timeGO->vel.y;
-		float a = -m_gravity.y;
-		float s = m_timeGO->pos.y;
-		m_timeEstimated1 = (v - u) / a;
 
 		//v * v = u * u + 2 * a * s
 		//s = - (u * u) / (2 * a)
-		m_heightEstimated = (u * u) / (2 * a) + m_timeGO->pos.y;;
-
+						
 		//s = u * t + 0.5 * a * t * t
 		//(0.5 * a) * t * t + (u) * t + (-s) = 0
-		m_timeEstimated2 = (-u + sqrt(u * u - 4 * (0.5f * a) * (-s))) / (2 * 0.5f * a);
-
-		m_timeTaken1 = 0;
-		m_timeTaken2 = 0;
-		m_heightMax = 0;
-
 	}
-
+	
 	static bool bRButtonState = false;
-	if (!bRButtonState && Application::IsMousePressed(1))
+	if(!bRButtonState && Application::IsMousePressed(1))
 	{
 		bRButtonState = true;
 		std::cout << "RBUTTON DOWN" << std::endl;
 		//Exercise 7: spawn obstacles using GO_CUBE
-		for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
-		{
-			GameObject *go = (GameObject *)*it;
-			if (!go->active)
-			{
-				go->active = true;
-				go->type = GameObject::GO_CUBE;
-
-				double x, y;
-				Application::GetCursorPos(&x, &y);
-				int w = Application::GetWindowWidth();
-				int h = Application::GetWindowHeight();
-				float worldX = x * m_worldWidth / w;
-				float worldY = (h - y) * m_worldHeight / h;
-
-				go->pos.Set(worldX, worldY, 0);
-				break;
-			}
-
-		}
 	}
-	else if (bRButtonState && !Application::IsMousePressed(1))
+	else if(bRButtonState && !Application::IsMousePressed(1))
 	{
 		bRButtonState = false;
 		std::cout << "RBUTTON UP" << std::endl;
@@ -330,72 +234,45 @@ void SceneKinematics::Update(double dt)
 
 	//Physics Simulation Section
 	fps = (float)(1.f / dt);
-	dt *= m_speed;
-
-	if (m_timeGO && m_timeGO->active)
-	{
-		if (m_timeGO->vel.y > 0)
-		{
-			m_timeTaken1 += dt;
-			m_heightMax = m_timeGO->pos.y;
-		}
-		if (m_timeGO->pos.y > 0)
-		{
-			m_timeTaken2 += dt;
-		}
-	}
 
 	//Exercise 11: update kinematics information
-	for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
+	for(std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
 	{
 		GameObject *go = (GameObject *)*it;
-		if (go->active)
+		if(go->active)
 		{
-			if (go->type == GameObject::GO_BALL)
+			if(go->type == GameObject::GO_BALL)
 			{
 				//Exercise 2: implement equation 1 & 2
-				go->vel += m_gravity * dt;
-				go->pos += go->vel * dt;
-
-				//Exercise 8: check collision with GO_CUBE
-				for (std::vector<GameObject *>::iterator it2 = m_goList.begin(); it2 != m_goList.end(); ++it2) //for (auto other: m_goList) skips creating other object code below
-				{
-					GameObject *other = (GameObject *)*it2;
-					if (other->type == GameObject::GO_CUBE)
-					{
-						if (other->active == true)
-						{
-							float distanceSquared = (other->pos - go->pos).LengthSquared();
-							float combinedRadiusSquared = (go->scale.x + other->scale.x) * (go->scale.x + other->scale.x);
-							if (distanceSquared < combinedRadiusSquared)
-							{
-								other->active = false;
-								go->active = false;
-								break;
-							}
-						}
-					}
-
-					//Exercise 12: replace Exercise 2 code and use average speed instead
-				}
-
-				//Exercise 5: unspawn ball when outside window
-				if (go->pos.y < -20 || go->pos.x < -20 || go->pos.y > m_worldHeight + 20 || go->pos.x > m_worldWidth + 20)
-				{
-					go->active = false;
-				}
+				
+				//Exercise 12: replace Exercise 2 code and use average speed instead
 			}
+
+			//Exercise 8: check collision with GO_CUBE
+
+			//Exercise 5: unspawn ball when outside window
 		}
+	}
+	current_time += dt;
+	if (current_time >= NIGHT_TIME_END)
+	{
+		current_time = DAY_TIME_START;
+	}
+	if (current_time < NIGHT_TIME_START)
+	{
+		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
+		{
+			rabbit_system.GetRabbits()[i].Update(dt);
+		}
+		
 	}
 }
 
-
-
 void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
 {
-	if (!mesh || mesh->textureID <= 0)
+	if(!mesh || mesh->textureID <= 0)
 		return;
-
+	
 	glDisable(GL_DEPTH_TEST);
 	glUniform1i(m_parameters[U_TEXT_ENABLED], 1);
 	glUniform3fv(m_parameters[U_TEXT_COLOR], 1, &color.r);
@@ -404,13 +281,13 @@ void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, mesh->textureID);
 	glUniform1i(m_parameters[U_COLOR_TEXTURE], 0);
-	for (unsigned i = 0; i < text.length(); ++i)
+	for(unsigned i = 0; i < text.length(); ++i)
 	{
 		Mtx44 characterSpacing;
 		characterSpacing.SetToTranslation(i * 1.0f, 0, 0); //1.0f is the spacing of each character, you may change this value
 		Mtx44 MVP = projectionStack.Top() * viewStack.Top() * modelStack.Top() * characterSpacing;
 		glUniformMatrix4fv(m_parameters[U_MVP], 1, GL_FALSE, &MVP.a[0]);
-
+	
 		mesh->Render((unsigned)text[i] * 6, 6);
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -420,7 +297,7 @@ void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
 
 void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color color, float size, float x, float y)
 {
-	if (!mesh || mesh->textureID <= 0)
+	if(!mesh || mesh->textureID <= 0)
 		return;
 
 	glDisable(GL_DEPTH_TEST);
@@ -441,7 +318,7 @@ void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color col
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, mesh->textureID);
 	glUniform1i(m_parameters[U_COLOR_TEXTURE], 0);
-	for (unsigned i = 0; i < text.length(); ++i)
+	for(unsigned i = 0; i < text.length(); ++i)
 	{
 		Mtx44 characterSpacing;
 		characterSpacing.SetToTranslation(i * 1.0f + 0.5f, 0.5f, 0); //1.0f is the spacing of each character, you may change this value
@@ -461,17 +338,17 @@ void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color col
 void SceneKinematics::RenderMesh(Mesh *mesh, bool enableLight)
 {
 	Mtx44 MVP, modelView, modelView_inverse_transpose;
-
+	
 	MVP = projectionStack.Top() * viewStack.Top() * modelStack.Top();
 	glUniformMatrix4fv(m_parameters[U_MVP], 1, GL_FALSE, &MVP.a[0]);
-	if (enableLight && bLightEnabled)
+	if(enableLight && bLightEnabled)
 	{
 		glUniform1i(m_parameters[U_LIGHTENABLED], 1);
 		modelView = viewStack.Top() * modelStack.Top();
 		glUniformMatrix4fv(m_parameters[U_MODELVIEW], 1, GL_FALSE, &modelView.a[0]);
 		modelView_inverse_transpose = modelView.GetInverse().GetTranspose();
 		glUniformMatrix4fv(m_parameters[U_MODELVIEW_INVERSE_TRANSPOSE], 1, GL_FALSE, &modelView.a[0]);
-
+		
 		//load material
 		glUniform3fv(m_parameters[U_MATERIAL_AMBIENT], 1, &mesh->material.kAmbient.r);
 		glUniform3fv(m_parameters[U_MATERIAL_DIFFUSE], 1, &mesh->material.kDiffuse.r);
@@ -479,10 +356,10 @@ void SceneKinematics::RenderMesh(Mesh *mesh, bool enableLight)
 		glUniform1f(m_parameters[U_MATERIAL_SHININESS], mesh->material.kShininess);
 	}
 	else
-	{
+	{	
 		glUniform1i(m_parameters[U_LIGHTENABLED], 0);
 	}
-	if (mesh->textureID > 0)
+	if(mesh->textureID > 0)
 	{
 		glUniform1i(m_parameters[U_COLOR_TEXTURE_ENABLED], 1);
 		glActiveTexture(GL_TEXTURE0);
@@ -494,7 +371,7 @@ void SceneKinematics::RenderMesh(Mesh *mesh, bool enableLight)
 		glUniform1i(m_parameters[U_COLOR_TEXTURE_ENABLED], 0);
 	}
 	mesh->Render();
-	if (mesh->textureID > 0)
+	if(mesh->textureID > 0)
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -502,63 +379,125 @@ void SceneKinematics::RenderMesh(Mesh *mesh, bool enableLight)
 
 void SceneKinematics::RenderGO(GameObject *go)
 {
-	switch (go->type)
+	switch(go->type)
 	{
 	case GameObject::GO_BALL:
 		//Exercise 3: render a sphere with radius 1
-		modelStack.PushMatrix();
-		modelStack.Translate(go->pos.x, go->pos.y, go->pos.z);
-		modelStack.Scale(go->scale.x, go->scale.y, go->scale.z);
-		RenderMesh(meshList[GEO_BALL], false);
-		modelStack.PopMatrix();
 		break;
 	case GameObject::GO_CUBE:
-		//Exercise 7: render a cube with length 2
-		modelStack.PushMatrix();
-		modelStack.Translate(go->pos.x, go->pos.y, go->pos.z);
-		modelStack.Scale(go->scale.x, go->scale.y, go->scale.z);
-		RenderMesh(meshList[GEO_CUBE], false);
-		modelStack.PopMatrix();
+
 		break;
 	}
+}
+
+void SceneKinematics::RenderWall()
+{
+	modelStack.PushMatrix();
+	modelStack.Translate(110, 155, 1);
+	modelStack.Scale(2, 92, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(295, 155, 1);
+	modelStack.Scale(2, 92, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(202, 245, 1);
+	modelStack.Scale(92, 2, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(202, 65, 1);
+	modelStack.Scale(92, 2, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+	///////////////////////////////////////////////////////////////////
+	modelStack.PushMatrix();
+	modelStack.Translate(155, 150, 1);
+	modelStack.Scale(2, 52, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(247.5, 150, 1);
+	modelStack.Scale(2.2, 52, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(200, 200, 1);
+	modelStack.Scale(45, 2, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(202, 100, 1);
+	modelStack.Scale(48, 2, 1);
+	RenderMesh(meshList[GEO_WALL], false);
+	modelStack.PopMatrix();
 }
 
 void SceneKinematics::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
 	//Calculating aspect ratio
-	m_worldHeight = 100.f;
-	m_worldWidth = m_worldHeight * (float)Application::GetWindowWidth() / Application::GetWindowHeight();
+	//m_worldHeight = 300.f;
+	//m_worldWidth = m_worldHeight * (float)Application::GetWindowWidth() / Application::GetWindowHeight();
 
 	// Projection matrix : Orthographic Projection
 	Mtx44 projection;
 	projection.SetToOrtho(0, m_worldWidth, 0, m_worldHeight, -10, 10);
 	projectionStack.LoadMatrix(projection);
-
+	
 	// Camera matrix
 	viewStack.LoadIdentity();
 	viewStack.LookAt(
-		camera.position.x, camera.position.y, camera.position.z,
-		camera.target.x, camera.target.y, camera.target.z,
-		camera.up.x, camera.up.y, camera.up.z
-		);
+						camera.position.x, camera.position.y, camera.position.z,
+						camera.target.x, camera.target.y, camera.target.z,
+						camera.up.x, camera.up.y, camera.up.z
+					);
 	// Model matrix : an identity matrix (model will be at the origin)
 	modelStack.LoadIdentity();
-
+	
 	RenderMesh(meshList[GEO_AXES], false);
 
-	for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
+	for(std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
 	{
 		GameObject *go = (GameObject *)*it;
-		if (go->active)
+		if(go->active)
 		{
 			RenderGO(go);
 		}
 	}
-	if (m_ghost->active)
+	if(m_ghost->active)
 	{
 		RenderGO(m_ghost);
+	}
+
+	RenderWall();
+	modelStack.PushMatrix();
+	modelStack.Translate(202, 150, 1);
+	modelStack.Scale(18, 18, 1);
+	RenderMesh(meshList[GEO_MOTHERBASE], false);
+	modelStack.PopMatrix();
+
+	//if DAY time, rabbits spawn
+	if (current_time < NIGHT_TIME_START)
+	{
+		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
+		{
+			const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
+			modelStack.PushMatrix();
+			modelStack.Translate(Rabbitpos.x,Rabbitpos.y,-10);
+			modelStack.Scale(3,3,3);
+			RenderMesh(meshList[GEO_BALL],false);
+			modelStack.PopMatrix();
+		}
 	}
 
 	//On screen text
@@ -567,75 +506,48 @@ void SceneKinematics::Render()
 	ss << "FPS: " << fps;
 	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 0), 3, 0, 3);
 
+	
 	//Exercise 6: print simulation speed
-	ss.str("");
-	ss.precision(5);
-	ss << "Simulation Speed: " << m_speed;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(1, 1, 0), 3, 0, 6);
-
+	
 	//Exercise 10: print m_ghost position and velocity information
-	ss.str("");
-	ss.precision(5);
-	ss << "Ghost Velocity: " << m_ghost->vel;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(1, 0, 0), 3, 0, 9);
 
-	ss.str("");
-	ss.precision(5);
-	ss << "Ghost Position: " << m_ghost->pos;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(1, 0, 0), 3, 0, 12);
 	//Exercise 11: print kinematics information
-	ss.str("");
-	ss.precision(5);
-	ss << "Time Estimated 1: " << m_timeEstimated1;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 1), 3, 0, 21);
 
-	ss.str("");
-	ss.precision(5);
-	ss << "Time Estimated 2: " << m_timeEstimated2;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 1), 3, 0, 18);
+	//RenderTextOnScreen(meshList[GEO_TEXT], "Kinematics", Color(0, 1, 0), 3, 0, 0);
+	
 
-	ss.str("");
-	ss.precision(5);
-	ss << "Time Height: " << m_heightEstimated;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 1), 3, 0, 15);
+	if (current_time <= NIGHT_TIME_START)
+		RenderTextOnScreen(meshList[GEO_TEXT], "STATE: DAY", Color(0, 1, 0), 3, 0, 0);
 
-	ss.str("");
-	ss.precision(5);
-	ss << "Time Taken 1: " << m_timeTaken1;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 1), 3, 0, 30);
+	if (current_time >= NIGHT_TIME_START)
+	RenderTextOnScreen(meshList[GEO_TEXT], "STATE: NIGHT", Color(0, 1, 0), 3, 0, 0);
 
-	ss.str("");
-	ss.precision(5);
-	ss << "Time Taken 2: " << m_timeTaken2;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 1), 3, 0, 27);
+	std::ostringstream ss2;
+	ss2.precision(5);
+	ss2 << "TIME:" << (int)current_time;
+	RenderTextOnScreen(meshList[GEO_TEXT], ss2.str(), Color(0, 1, 0), 3, 30, 55);
 
-	ss.str("");
-	ss.precision(5);
-	ss << "Max Height: " << m_heightMax;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 1), 3, 0, 24);
-
-	RenderTextOnScreen(meshList[GEO_TEXT], "Kinematics", Color(0, 1, 0), 3, 0, 0);
 }
 
 void SceneKinematics::Exit()
 {
 	// Cleanup VBO
-	for (int i = 0; i < NUM_GEOMETRY; ++i)
+	for(int i = 0; i < NUM_GEOMETRY; ++i)
 	{
-		if (meshList[i])
+		if(meshList[i])
 			delete meshList[i];
 	}
 	glDeleteProgram(m_programID);
 	glDeleteVertexArrays(1, &m_vertexArrayID);
-
+	
 	//Cleanup GameObjects
-	while (m_goList.size() > 0)
+	while(m_goList.size() > 0)
 	{
 		GameObject *go = m_goList.back();
 		delete go;
 		m_goList.pop_back();
 	}
-	if (m_ghost)
+	if(m_ghost)
 	{
 		delete m_ghost;
 		m_ghost = NULL;

@@ -8,6 +8,11 @@
 #include "MatrixStack.h"
 #include "Light.h"
 #include "GameObject.h"
+#include "Rabbit.h"
+#include "Archer.h"
+#include "Map.h"
+#include "Base.h"
+#include "Random.h"
 #include <vector>
 
 class SceneKinematics : public Scene
@@ -45,7 +50,9 @@ class SceneKinematics : public Scene
 		GEO_AXES,
 		GEO_TEXT,
 		GEO_BALL,
+		GEO_MOTHERBASE,
 		GEO_CUBE,
+		GEO_WALL,
 		NUM_GEOMETRY,
 	};
 public:
@@ -61,6 +68,8 @@ public:
 	void RenderTextOnScreen(Mesh* mesh, std::string text, Color color, float size, float x, float y);
 	void RenderMesh(Mesh *mesh, bool enableLight);
 	void RenderGO(GameObject *go);
+
+	void RenderWall();
 private:
 	unsigned m_vertexArrayID;
 	Mesh* meshList[NUM_GEOMETRY];
@@ -93,6 +102,17 @@ private:
 	float m_timeTaken2;
 	float m_heightEstimated;
 	float m_heightMax;
+	const float DAY_TIME_START = 0.f;
+	const float NIGHT_TIME_START = 50.f;
+	const float NIGHT_TIME_END = 100.f;
+
+	//AI
+	RNG rng;
+	Map map;
+	Base base;
+	ArcherSystem archer_system;
+	RabbitSystem rabbit_system;
+	float current_time = 0.0f;
 };
 
 #endif
