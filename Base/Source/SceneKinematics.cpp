@@ -10,33 +10,15 @@
 #include "Vector3.h"
 #include <sstream>
 
-
-struct MyVector
-{
-	float x, y;
-	MyVector() :x(0), y(0){}
-	MyVector(float x, float y) :x(x), y(y){}
-	void SetPosition(float _x, float _y){ x = _x; y = _y; }
-	float GetX(){ return x; }
-	float GetY(){ return y; }
-	float Magnitude(){ return sqrt(x*x + y*y); }
-	MyVector Normalize(){ float length = Magnitude(); return MyVector(x / length, y / length); }
-	MyVector operator + (MyVector u){ return MyVector(x + u.x, y + u.y); }
-	MyVector operator - (MyVector u){ return MyVector(u.x - x, u.y - y); }
-	MyVector operator += (MyVector u){ return MyVector(x + u.x, y + u.y); }
-	MyVector operator ~(){ return MyVector(-x, -y); }
-	MyVector operator *(float scale){ return MyVector(x*scale, y*scale); }
-	float operator * (MyVector  v){ return  x*v.x + y*v.y; }
-};
 SceneKinematics::SceneKinematics()
 :
 m_worldHeight(300.f),
 m_worldWidth(400.f),
 map(m_worldWidth*0.5, m_worldHeight*0.5, m_worldWidth, m_worldHeight),
-base(m_worldWidth*0.5, m_worldHeight*0.5, 92, 92),
-archer_system(map, base),
+base(rng, m_worldWidth*0.5, m_worldHeight*0.5, 100, 100),
 rabbit_system(map, base, rng),
-current_time(0.0f)
+arrow_system(rabbit_system),
+archer_system(map, base, rabbit_system, arrow_system)
 {
 }
 
@@ -132,8 +114,14 @@ void SceneKinematics::Init()
 	}
 	meshList[GEO_AXES] = MeshBuilder::GenerateAxes("reference", 1000, 1000, 1000);
 	meshList[GEO_BALL] = MeshBuilder::GenerateSphere("ball", Color(1, 1, 1), 10, 10, 1.f);
-	meshList[GEO_MOTHERBASE] = MeshBuilder::GenerateSphere("motherbase", Color(0, 1, 0), 10, 10, 1.f);
 	meshList[GEO_CUBE] = MeshBuilder::GenerateCube("cube", Color(1, 1, 1), 2.f);
+	meshList[GEO_MOTHERBASE] = MeshBuilder::GenerateCube("motherbase", Color(0, 1, 0), 2.f);
+	meshList[GEO_ARROW] = MeshBuilder::GenerateSphere("arrow", Color(1, 1, 1), 10, 10, 1.f);
+	meshList[GEO_ARCHER] = MeshBuilder::GenerateCube("archer", Color(1, 0, 1), 2.f);
+	meshList[GEO_UNRECRUITED_ARCHER] = MeshBuilder::GenerateCube("unrecruited archer", Color(1, 1, 0), 2.f);
+	meshList[GEO_WORKER] = MeshBuilder::GenerateCube("worker", Color(1, 0, 0), 2.f);
+	meshList[GEO_RABBIT] = MeshBuilder::GenerateCube("rabbit", Color(1, 1, 1), 2.f);
+	meshList[GEO_DEAD_RABBIT] = MeshBuilder::GenerateCube("dead rabbit", Color(0, 0, 0), 2.f);
 	meshList[GEO_WALL] = MeshBuilder::GenerateQuad("wall", Color(0, 1, 0), 2.f);
 	meshList[GEO_TEXT] = MeshBuilder::GenerateText("text", 16, 16);
 	meshList[GEO_TEXT]->textureID = LoadTGA("Image//calibri.tga");
@@ -253,19 +241,12 @@ void SceneKinematics::Update(double dt)
 			//Exercise 5: unspawn ball when outside window
 		}
 	}
-	current_time += dt;
-	if (current_time >= NIGHT_TIME_END)
-	{
-		current_time = DAY_TIME_START;
-	}
-	if (current_time < NIGHT_TIME_START)
-	{
-		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
-		{
-			rabbit_system.GetRabbits()[i].Update(dt);
-		}
-		
-	}
+	map.Update(dt);
+	base.Update(dt);
+	rabbit_system.Update(dt);
+	arrow_system.Update(dt);
+	archer_system.Update(dt);
+
 }
 
 void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
@@ -444,7 +425,7 @@ void SceneKinematics::RenderWall()
 void SceneKinematics::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	//Calculating aspect ratio
 	//m_worldHeight = 300.f;
 	//m_worldWidth = m_worldHeight * (float)Application::GetWindowWidth() / Application::GetWindowHeight();
@@ -453,28 +434,28 @@ void SceneKinematics::Render()
 	Mtx44 projection;
 	projection.SetToOrtho(0, m_worldWidth, 0, m_worldHeight, -10, 10);
 	projectionStack.LoadMatrix(projection);
-	
+
 	// Camera matrix
 	viewStack.LoadIdentity();
 	viewStack.LookAt(
-						camera.position.x, camera.position.y, camera.position.z,
-						camera.target.x, camera.target.y, camera.target.z,
-						camera.up.x, camera.up.y, camera.up.z
-					);
+		camera.position.x, camera.position.y, camera.position.z,
+		camera.target.x, camera.target.y, camera.target.z,
+		camera.up.x, camera.up.y, camera.up.z
+		);
 	// Model matrix : an identity matrix (model will be at the origin)
 	modelStack.LoadIdentity();
-	
+
 	RenderMesh(meshList[GEO_AXES], false);
 
-	for(std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
+	for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
 	{
 		GameObject *go = (GameObject *)*it;
-		if(go->active)
+		if (go->active)
 		{
 			RenderGO(go);
 		}
 	}
-	if(m_ghost->active)
+	if (m_ghost->active)
 	{
 		RenderGO(m_ghost);
 	}
@@ -487,17 +468,51 @@ void SceneKinematics::Render()
 	modelStack.PopMatrix();
 
 	//if DAY time, rabbits spawn
-	if (current_time < NIGHT_TIME_START)
+	if (map.IsDaytime())
 	{
 		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
 		{
 			const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
 			modelStack.PushMatrix();
-			modelStack.Translate(Rabbitpos.x,Rabbitpos.y,-10);
-			modelStack.Scale(3,3,3);
-			RenderMesh(meshList[GEO_BALL],false);
+			modelStack.Translate(Rabbitpos.x, Rabbitpos.y, Rabbitpos.z);
+			modelStack.Scale(3, 3, 3);
+			if (rabbit_system.GetRabbits()[i].GetState() == Rabbit::A_STATE::DEAD)
+			{
+				RenderMesh(meshList[GEO_DEAD_RABBIT], false);
+			}
+			else
+			{
+				RenderMesh(meshList[GEO_RABBIT], false);
+			}
 			modelStack.PopMatrix();
 		}
+	}
+
+	for (auto& archer : archer_system.GetArchers())
+	{
+		const auto position = archer.GetPosition();
+		modelStack.PushMatrix();
+		modelStack.Translate(position.x, position.y, position.z);
+		modelStack.Scale(3, 3, 3);
+		if (archer.GetState() == Archer::A_STATE::UNRECRUITED || archer.GetState() == Archer::A_STATE::GRAB_TOOL)
+		{
+			RenderMesh(meshList[GEO_UNRECRUITED_ARCHER], false);
+		}
+		else
+		{
+			RenderMesh(meshList[GEO_ARCHER], false);
+		}
+		modelStack.PopMatrix();
+	}
+
+	for (auto& arrow : arrow_system.GetArrows())
+	{
+		const auto position = arrow.GetPosition();
+		modelStack.PushMatrix();
+		modelStack.Translate(position.x, position.y, position.z);
+		modelStack.Scale(3, 3, 3);
+		RenderMesh(meshList[GEO_ARROW], false);
+		modelStack.PopMatrix();
 	}
 
 	//On screen text
@@ -516,15 +531,18 @@ void SceneKinematics::Render()
 	//RenderTextOnScreen(meshList[GEO_TEXT], "Kinematics", Color(0, 1, 0), 3, 0, 0);
 	
 
-	if (current_time <= NIGHT_TIME_START)
+	if (map.IsDaytime())
+	{
 		RenderTextOnScreen(meshList[GEO_TEXT], "STATE: DAY", Color(0, 1, 0), 3, 0, 0);
-
-	if (current_time >= NIGHT_TIME_START)
-	RenderTextOnScreen(meshList[GEO_TEXT], "STATE: NIGHT", Color(0, 1, 0), 3, 0, 0);
+	}
+	else
+	{
+		RenderTextOnScreen(meshList[GEO_TEXT], "STATE: NIGHT", Color(0, 1, 0), 3, 0, 0);
+	}
 
 	std::ostringstream ss2;
 	ss2.precision(5);
-	ss2 << "TIME:" << (int)current_time;
+	ss2 << "TIME:" << (int)map.GetCurrTime();
 	RenderTextOnScreen(meshList[GEO_TEXT], ss2.str(), Color(0, 1, 0), 3, 30, 55);
 
 }

@@ -41,10 +41,12 @@ public:
 		const float base_end_region_x = base.EndingRegionX();
 		const float base_start_region_y = base.StartingRegionY();
 		const float base_end_region_y = base.EndingRegionY();
-		const Vector3 base_bottom_left(base_start_region_x, base_end_region_y, 0);
+
+		const Vector3 base_bottom_left(base_start_region_x, base_start_region_y, 0);
 		const Vector3 base_top_left(base_start_region_x, base_end_region_y, 0);
-		const Vector3 base_bottom_right(base_end_region_x, base_end_region_y, 0);
+		const Vector3 base_bottom_right(base_end_region_x, base_start_region_y, 0);
 		const Vector3 base_top_right(base_end_region_x, base_end_region_y, 0);
+
 		const Vector3 top_wall_vector = base_top_right - base_top_left;
 		const Vector3 bottom_wall_vector = base_bottom_right - base_bottom_left;
 		const Vector3 left_wall_vector = base_top_left - base_bottom_left;
@@ -52,10 +54,10 @@ public:
 
 		const Vector3 rabbit_to_roam = roam_position - position;
 
-		return CheckIfVectorsCollide(base_top_left, top_wall_vector, position, roam_position) ||
-			CheckIfVectorsCollide(base_bottom_left, bottom_wall_vector, position, roam_position) ||
-			CheckIfVectorsCollide(base_bottom_left, left_wall_vector, position, roam_position) ||
-			CheckIfVectorsCollide(base_bottom_right, right_wall_vector, position, roam_position);
+		return CheckIfVectorsCollide(base_top_left, top_wall_vector, position, rabbit_to_roam) ||
+			CheckIfVectorsCollide(base_bottom_left, bottom_wall_vector, position, rabbit_to_roam) ||
+			CheckIfVectorsCollide(base_bottom_left, left_wall_vector, position, rabbit_to_roam) ||
+			CheckIfVectorsCollide(base_bottom_right, right_wall_vector, position, rabbit_to_roam);
 	}
 	void SetRoamingPosition()
 	{
@@ -117,13 +119,14 @@ public:
 				position += rabbitVel*time;
 				if (Dir().Dot(rabbitVel) < 0)
 				{
-					roam_position = GetRandomPositionOutsideBase();
+					SetRoamingPosition();
 					rabbitVel = Vel(Rabbitspeed);
 				}
-				const int randStop = rand.RandInt(0,100);
-				if (randStop == 1 || randStop == 2)
+				const int randStop = rand.RandInt(0,1000);
+				if (randStop == 1)
 				{
-					//state = A_STATE::STOP;
+					stoptime = rand.RandFloat(5, 10);
+					state = A_STATE::STOP;
 				}
 				break;
 			}
@@ -142,10 +145,22 @@ public:
 			}
 		}
 	}
+
+	void UponDeath()
+	{
+		state = A_STATE::DEAD;
+	}
+
 	Vector3 Pos()
 	{
 		return position;
 	}
+
+	A_STATE GetState() const
+	{
+		return state;
+	}
+
 private:
 	Base& base;
 	Map& map;
@@ -155,6 +170,7 @@ private:
 	Vector3 roam_position;
 	RNG& rand;
 	double stoptimer;
+	double stoptime;
 
 	Vector3 Dir()
 	{
@@ -176,25 +192,41 @@ private:
 class RabbitSystem
 {
 public:
-	static const unsigned TOTAL_RABBITS= 10;
+	static const unsigned TOTAL_RABBITS = 50;
 
 	RabbitSystem(Map& map, Base& base, RNG& rng)
+	:
+	map(map),
+	base(base)
 	{
 		for (unsigned i = 0; i < TOTAL_RABBITS; ++i)
 		{
-			rabbit.push_back(Rabbit(map, base, rng));
+			rabbits.push_back(Rabbit(map, base, rng));
 		}
 	}
 	~RabbitSystem()
 	{
 	}
 
+	void Update(const double delta_time)
+	{
+		if (map.IsDaytime())
+		{
+			for (auto& rabbit : rabbits)
+			{
+				rabbit.Update(delta_time);
+			}
+		}
+	}
+
 	std::vector<Rabbit>& GetRabbits()
 	{
-		return rabbit;
+		return rabbits;
 	}
 
 private:
-	std::vector<Rabbit> rabbit;
+	Map& map;
+	Base& base;
+	std::vector<Rabbit> rabbits;
 };
 #endif

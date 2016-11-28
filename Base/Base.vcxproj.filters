@@ -128,5 +128,8 @@
     <ClInclude Include="Source\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Arrow.h">
+      <Filter>Header Files\AI</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

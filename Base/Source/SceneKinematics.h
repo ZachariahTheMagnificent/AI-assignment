@@ -13,6 +13,7 @@
 #include "Map.h"
 #include "Base.h"
 #include "Random.h"
+#include "Arrow.h"
 #include <vector>
 
 class SceneKinematics : public Scene
@@ -53,6 +54,12 @@ class SceneKinematics : public Scene
 		GEO_MOTHERBASE,
 		GEO_CUBE,
 		GEO_WALL,
+		GEO_ARROW,
+		GEO_ARCHER,
+		GEO_UNRECRUITED_ARCHER,
+		GEO_WORKER,
+		GEO_RABBIT,
+		GEO_DEAD_RABBIT,
 		NUM_GEOMETRY,
 	};
 public:
@@ -110,9 +117,9 @@ private:
 	RNG rng;
 	Map map;
 	Base base;
-	ArcherSystem archer_system;
 	RabbitSystem rabbit_system;
-	float current_time = 0.0f;
+	ArrowSystem arrow_system;
+	ArcherSystem archer_system;
 };
 
 #endif

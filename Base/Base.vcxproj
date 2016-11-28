@@ -28,6 +28,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Application.h" />
     <ClInclude Include="Source\Archer.h" />
+    <ClInclude Include="Source\Arrow.h" />
     <ClInclude Include="Source\Base.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CheckIfVectorsCollide.h" />
