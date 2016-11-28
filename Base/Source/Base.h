@@ -11,7 +11,7 @@ public:
 	position(position_x, position_y, 0),
 	half_size_x(half_size_x),
 	half_size_y(half_size_y),
-	num_bows(0),
+	//num_bows(0),
 	time_until_bow_spawn(rng.RandFloat(MIN_BOW_SPAWN, MAX_BOW_SPAWN))
 	{
 	}

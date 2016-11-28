@@ -10,8 +10,8 @@ public:
 	rabbit_system(rabbit_system),
 	position(position),
 	direction(direction),
-	radius(5),
-	speed(20),
+	radius(7),
+	speed(50),
 	max_life(5),
 	current_life(0)
 	{

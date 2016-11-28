@@ -116,11 +116,17 @@ void SceneKinematics::Init()
 	meshList[GEO_BALL] = MeshBuilder::GenerateSphere("ball", Color(1, 1, 1), 10, 10, 1.f);
 	meshList[GEO_CUBE] = MeshBuilder::GenerateCube("cube", Color(1, 1, 1), 2.f);
 	meshList[GEO_MOTHERBASE] = MeshBuilder::GenerateQuad("motherbase", Color(0, 1, 0), 2.f);
-	meshList[GEO_ARROW] = MeshBuilder::GenerateSphere("arrow", Color(1, 1, 1), 10, 10, 1.f);
+	meshList[GEO_MOTHERBASE]->textureID = LoadTGA("Image//base.tga");
+	meshList[GEO_ARROW] = MeshBuilder::GenerateSphere("arrow", Color(1, 1, 1), 10,10,1.f);
+	//meshList[GEO_ARROW]->textureID = LoadTGA("Image//arrow.tga");
 	meshList[GEO_ARCHER] = MeshBuilder::GenerateQuad("archer", Color(1, 0, 1), 2.f);
+	meshList[GEO_ARCHER]->textureID = LoadTGA("Image//Archers.tga");
 	meshList[GEO_UNRECRUITED_ARCHER] = MeshBuilder::GenerateQuad("unrecruited archer", Color(1, 1, 0), 2.f);
+	meshList[GEO_UNRECRUITED_ARCHER]->textureID = LoadTGA("Image//peasant.tga");
 	meshList[GEO_WORKER] = MeshBuilder::GenerateQuad("worker", Color(1, 0, 0), 2.f);
+	meshList[GEO_WORKER]->textureID = LoadTGA("Image//Engineer.tga");
 	meshList[GEO_RABBIT] = MeshBuilder::GenerateQuad("rabbit", Color(1, 1, 1), 2.f);
+	meshList[GEO_RABBIT]->textureID = LoadTGA("Image//Rabbit.tga");
 	meshList[GEO_DEAD_RABBIT] = MeshBuilder::GenerateQuad("dead rabbit", Color(0, 0, 0), 2.f);
 	meshList[GEO_WALL] = MeshBuilder::GenerateQuad("wall", Color(0, 1, 0), 2.f);
 	meshList[GEO_TEXT] = MeshBuilder::GenerateText("text", 16, 16);
@@ -475,7 +481,7 @@ void SceneKinematics::Render()
 			const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
 			modelStack.PushMatrix();
 			modelStack.Translate(Rabbitpos.x, Rabbitpos.y, Rabbitpos.z);
-			modelStack.Scale(3, 3, 3);
+			modelStack.Scale(7, 7, 0);
 			if (rabbit_system.GetRabbits()[i].GetState() == Rabbit::A_STATE::DEAD)
 			{
 				RenderMesh(meshList[GEO_DEAD_RABBIT], false);
@@ -493,7 +499,7 @@ void SceneKinematics::Render()
 		const auto position = archer.GetPosition();
 		modelStack.PushMatrix();
 		modelStack.Translate(position.x, position.y, position.z);
-		modelStack.Scale(3, 3, 3);
+		modelStack.Scale(7, 7, 0);
 		if (archer.GetState() == Archer::A_STATE::UNRECRUITED || archer.GetState() == Archer::A_STATE::GRAB_TOOL)
 		{
 			RenderMesh(meshList[GEO_UNRECRUITED_ARCHER], false);
@@ -510,7 +516,7 @@ void SceneKinematics::Render()
 		const auto position = arrow.GetPosition();
 		modelStack.PushMatrix();
 		modelStack.Translate(position.x, position.y, position.z);
-		modelStack.Scale(3, 3, 3);
+		modelStack.Scale(2, 2, 0);
 		RenderMesh(meshList[GEO_ARROW], false);
 		modelStack.PopMatrix();
 	}
