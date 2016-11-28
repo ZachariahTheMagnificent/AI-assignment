@@ -141,6 +141,11 @@ public:
 			}
 			case A_STATE::DEAD:
 			{
+				time_until_revive -= time;
+				if (time_until_revive <= 0)
+				{
+					Revive();
+				}
 				break;
 			}
 		}
@@ -149,6 +154,19 @@ public:
 	void UponDeath()
 	{
 		state = A_STATE::DEAD;
+		time_until_revive = rand.RandFloat(0, 10);
+	}
+
+	void Revive()
+	{
+		if (state == A_STATE::DEAD)
+		{
+			state = A_STATE::ROAMING;
+			position = GetRandomPositionOutsideBase();
+			SetRoamingPosition();
+			rabbitVel = Vel(Rabbitspeed);
+			stoptimer = 0.0f;
+		}
 	}
 
 	Vector3 Pos()
@@ -171,6 +189,7 @@ private:
 	RNG& rand;
 	double stoptimer;
 	double stoptime;
+	double time_until_revive;
 
 	Vector3 Dir()
 	{
