@@ -10,6 +10,7 @@
 #include "GameObject.h"
 #include "Rabbit.h"
 #include "Archer.h"
+#include "Monster.h"
 #include "Map.h"
 #include "Base.h"
 #include "Random.h"
@@ -60,6 +61,7 @@ class SceneKinematics : public Scene
 		GEO_WORKER,
 		GEO_RABBIT,
 		GEO_DEAD_RABBIT,
+		GEO_MONSTER,
 		NUM_GEOMETRY,
 	};
 public:
@@ -120,6 +122,7 @@ private:
 	RabbitSystem rabbit_system;
 	ArrowSystem arrow_system;
 	ArcherSystem archer_system;
+	MonsterSystem monster_system;
 };
 
 #endif

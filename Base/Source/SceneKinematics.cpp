@@ -18,7 +18,8 @@ map(m_worldWidth*0.5, m_worldHeight*0.5, m_worldWidth, m_worldHeight),
 base(rng, m_worldWidth*0.5, m_worldHeight*0.5, 100, 100),
 rabbit_system(map, base, rng),
 arrow_system(rabbit_system),
-archer_system(map, base, rabbit_system, arrow_system)
+archer_system(map, base, rabbit_system, arrow_system),
+monster_system(map, base, rng, archer_system)
 {
 }
 
@@ -128,6 +129,8 @@ void SceneKinematics::Init()
 	meshList[GEO_RABBIT] = MeshBuilder::GenerateQuad("rabbit", Color(1, 1, 1), 2.f);
 	meshList[GEO_RABBIT]->textureID = LoadTGA("Image//Rabbit.tga");
 	meshList[GEO_DEAD_RABBIT] = MeshBuilder::GenerateQuad("dead rabbit", Color(0, 0, 0), 2.f);
+	meshList[GEO_MONSTER] = MeshBuilder::GenerateQuad("monster", Color(1, 1, 1), 2.f);
+	meshList[GEO_MONSTER]->textureID = LoadTGA("Image//zombies.tga");
 	meshList[GEO_WALL] = MeshBuilder::GenerateQuad("wall", Color(0, 1, 0), 2.f);
 	meshList[GEO_TEXT] = MeshBuilder::GenerateText("text", 16, 16);
 	meshList[GEO_TEXT]->textureID = LoadTGA("Image//calibri.tga");
@@ -472,6 +475,27 @@ void SceneKinematics::Render()
 	modelStack.Scale(18, 18, 1);
 	RenderMesh(meshList[GEO_MOTHERBASE], false);
 	modelStack.PopMatrix();
+
+	//if NIGHT time, monsters spawn
+	if (map.IsDaytime() != true)
+	{
+		for (int i = 0; i < monster_system.GetMonsters().size(); i++)
+		{
+			const Vector3 Monsterpos = monster_system.GetMonsters()[i].Pos();
+			modelStack.PushMatrix();
+			modelStack.Translate(Monsterpos.x, Monsterpos.y, Monsterpos.z);
+			modelStack.Scale(7, 7, 0);
+			if (monster_system.GetMonsters()[i].GetState() == Monster::M_STATE::DEAD)
+			{
+				RenderMesh(meshList[GEO_DEAD_RABBIT], false);
+			}
+			else
+			{
+				RenderMesh(meshList[GEO_MONSTER], false);
+			}
+			modelStack.PopMatrix();
+		}
+	}
 
 	//if DAY time, rabbits spawn
 	if (map.IsDaytime())
