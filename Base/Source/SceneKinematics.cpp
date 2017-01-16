@@ -123,6 +123,8 @@ void SceneKinematics::Init()
 	meshList[GEO_RABBIT] = MeshBuilder::GenerateQuad("rabbit", Color(1, 1, 1), 2.f);
 	meshList[GEO_RABBIT]->textureID = LoadTGA("Image//Rabbit.tga");
 	meshList[GEO_DEAD_RABBIT] = MeshBuilder::GenerateQuad("dead rabbit", Color(0, 0, 0), 2.f);
+	meshList[GEO_MONSTER] = MeshBuilder::GenerateQuad("monster", Color(1, 1, 1), 2.f);
+	meshList[GEO_MONSTER]->textureID = LoadTGA("Image//zombies.tga");
 	meshList[GEO_WALL] = MeshBuilder::GenerateQuad("wall", Color(0, 1, 0), 2.f);
 	meshList[GEO_TEXT] = MeshBuilder::GenerateText("text", 16, 16);
 	meshList[GEO_TEXT]->textureID = LoadTGA("Image//calibri.tga");

@@ -55,6 +55,7 @@ class SceneKinematics : public Scene
 		GEO_WORKER,
 		GEO_RABBIT,
 		GEO_DEAD_RABBIT,
+		GEO_MONSTER,
 		NUM_GEOMETRY,
 	};
 public:
