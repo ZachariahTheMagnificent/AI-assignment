@@ -8,12 +8,7 @@
 #include "MatrixStack.h"
 #include "Light.h"
 #include "GameObject.h"
-#include "Rabbit.h"
-#include "Archer.h"
-#include "Map.h"
-#include "Base.h"
 #include "Random.h"
-#include "Arrow.h"
 #include <vector>
 
 class SceneKinematics : public Scene
@@ -76,7 +71,6 @@ public:
 	void RenderMesh(Mesh *mesh, bool enableLight);
 	void RenderGO(GameObject *go);
 
-	void RenderWall();
 private:
 	unsigned m_vertexArrayID;
 	Mesh* meshList[NUM_GEOMETRY];
@@ -115,11 +109,6 @@ private:
 
 	//AI
 	RNG rng;
-	Map map;
-	Base base;
-	RabbitSystem rabbit_system;
-	ArrowSystem arrow_system;
-	ArcherSystem archer_system;
 };
 
 #endif

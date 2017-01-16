@@ -13,12 +13,7 @@
 SceneKinematics::SceneKinematics()
 :
 m_worldHeight(300.f),
-m_worldWidth(400.f),
-map(m_worldWidth*0.5, m_worldHeight*0.5, m_worldWidth, m_worldHeight),
-base(rng, m_worldWidth*0.5, m_worldHeight*0.5, 100, 100),
-rabbit_system(map, base, rng),
-arrow_system(rabbit_system),
-archer_system(map, base, rabbit_system, arrow_system)
+m_worldWidth(400.f)
 {
 }
 
@@ -247,11 +242,6 @@ void SceneKinematics::Update(double dt)
 			//Exercise 5: unspawn ball when outside window
 		}
 	}
-	map.Update(dt);
-	base.Update(dt);
-	rabbit_system.Update(dt);
-	arrow_system.Update(dt);
-	archer_system.Update(dt);
 
 }
 
@@ -377,57 +367,6 @@ void SceneKinematics::RenderGO(GameObject *go)
 	}
 }
 
-void SceneKinematics::RenderWall()
-{
-	modelStack.PushMatrix();
-	modelStack.Translate(110, 155, 1);
-	modelStack.Scale(2, 92, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-
-	modelStack.PushMatrix();
-	modelStack.Translate(295, 155, 1);
-	modelStack.Scale(2, 92, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-
-	modelStack.PushMatrix();
-	modelStack.Translate(202, 245, 1);
-	modelStack.Scale(92, 2, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-
-	modelStack.PushMatrix();
-	modelStack.Translate(202, 65, 1);
-	modelStack.Scale(92, 2, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-	///////////////////////////////////////////////////////////////////
-	modelStack.PushMatrix();
-	modelStack.Translate(155, 150, 1);
-	modelStack.Scale(2, 52, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-
-	modelStack.PushMatrix();
-	modelStack.Translate(247.5, 150, 1);
-	modelStack.Scale(2.2, 52, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-
-	modelStack.PushMatrix();
-	modelStack.Translate(200, 200, 1);
-	modelStack.Scale(45, 2, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-
-	modelStack.PushMatrix();
-	modelStack.Translate(202, 100, 1);
-	modelStack.Scale(48, 2, 1);
-	RenderMesh(meshList[GEO_WALL], false);
-	modelStack.PopMatrix();
-}
-
 void SceneKinematics::Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -466,61 +405,6 @@ void SceneKinematics::Render()
 		RenderGO(m_ghost);
 	}
 
-	RenderWall();
-	modelStack.PushMatrix();
-	modelStack.Translate(202, 150, 1);
-	modelStack.Scale(18, 18, 1);
-	RenderMesh(meshList[GEO_MOTHERBASE], false);
-	modelStack.PopMatrix();
-
-	//if DAY time, rabbits spawn
-	if (map.IsDaytime())
-	{
-		for (int i = 0; i < rabbit_system.GetRabbits().size(); i++)
-		{
-			const Vector3 Rabbitpos = rabbit_system.GetRabbits()[i].Pos();
-			modelStack.PushMatrix();
-			modelStack.Translate(Rabbitpos.x, Rabbitpos.y, Rabbitpos.z);
-			modelStack.Scale(7, 7, 0);
-			if (rabbit_system.GetRabbits()[i].GetState() == Rabbit::A_STATE::DEAD)
-			{
-				RenderMesh(meshList[GEO_DEAD_RABBIT], false);
-			}
-			else
-			{
-				RenderMesh(meshList[GEO_RABBIT], false);
-			}
-			modelStack.PopMatrix();
-		}
-	}
-
-	for (auto& archer : archer_system.GetArchers())
-	{
-		const auto position = archer.GetPosition();
-		modelStack.PushMatrix();
-		modelStack.Translate(position.x, position.y, position.z);
-		modelStack.Scale(7, 7, 0);
-		if (archer.GetState() == Archer::A_STATE::UNRECRUITED || archer.GetState() == Archer::A_STATE::GRAB_TOOL)
-		{
-			RenderMesh(meshList[GEO_UNRECRUITED_ARCHER], false);
-		}
-		else
-		{
-			RenderMesh(meshList[GEO_ARCHER], false);
-		}
-		modelStack.PopMatrix();
-	}
-
-	for (auto& arrow : arrow_system.GetArrows())
-	{
-		const auto position = arrow.GetPosition();
-		modelStack.PushMatrix();
-		modelStack.Translate(position.x, position.y, position.z);
-		modelStack.Scale(2, 2, 0);
-		RenderMesh(meshList[GEO_ARROW], false);
-		modelStack.PopMatrix();
-	}
-
 	//On screen text
 	std::ostringstream ss;
 	ss.precision(5);
@@ -535,22 +419,6 @@ void SceneKinematics::Render()
 	//Exercise 11: print kinematics information
 
 	//RenderTextOnScreen(meshList[GEO_TEXT], "Kinematics", Color(0, 1, 0), 3, 0, 0);
-	
-
-	if (map.IsDaytime())
-	{
-		RenderTextOnScreen(meshList[GEO_TEXT], "STATE: DAY", Color(0, 1, 0), 3, 0, 0);
-	}
-	else
-	{
-		RenderTextOnScreen(meshList[GEO_TEXT], "STATE: NIGHT", Color(0, 1, 0), 3, 0, 0);
-	}
-
-	std::ostringstream ss2;
-	ss2.precision(5);
-	ss2 << "TIME:" << (int)map.GetCurrTime();
-	RenderTextOnScreen(meshList[GEO_TEXT], ss2.str(), Color(0, 1, 0), 3, 30, 55);
-
 }
 
 void SceneKinematics::Exit()

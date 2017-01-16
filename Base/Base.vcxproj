@@ -27,9 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Application.h" />
-    <ClInclude Include="Source\Archer.h" />
-    <ClInclude Include="Source\Arrow.h" />
-    <ClInclude Include="Source\Base.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CheckIfVectorsCollide.h" />
     <ClInclude Include="Source\GameObject.h" />
@@ -37,12 +34,9 @@
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LoadOBJ.h" />
     <ClInclude Include="Source\LoadTGA.h" />
-    <ClInclude Include="Source\Map.h" />
     <ClInclude Include="Source\Material.h" />
     <ClInclude Include="Source\Mesh.h" />
     <ClInclude Include="Source\MeshBuilder.h" />
-    <ClInclude Include="Source\Monster.h" />
-    <ClInclude Include="Source\Rabbit.h" />
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\Scene.h" />
     <ClInclude Include="Source\SceneKinematics.h" />
