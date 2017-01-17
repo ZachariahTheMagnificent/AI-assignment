@@ -140,6 +140,9 @@ void SceneKinematics::Init()
 
 	m_ghost = new GameObject(GameObject::GO_BALL);
 	//Exercise 1: construct 10 GameObject with type GO_BALL and add into m_goList
+
+	underwatch.GetArcher().SetPosition(250,50,0);
+	underwatch.GetHealer().SetPosition(280,45, 0);
 }
 
 void SceneKinematics::Update(double dt)
@@ -168,11 +171,11 @@ void SceneKinematics::Update(double dt)
 	}
 	if(Application::IsKeyPressed(' '))
 	{
-		//Exercise 9: spawn balls
+		underwatch.damageArcher(1);
 	}
-	if(Application::IsKeyPressed('v'))
+	if(Application::IsKeyPressed('V'))
 	{
-		//Exercise 9: spawn obstacles
+		underwatch.damageHealer(1);
 	}
 
 	//Mouse Section
@@ -281,7 +284,7 @@ void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color col
 
 	glDisable(GL_DEPTH_TEST);
 	Mtx44 ortho;
-	ortho.SetToOrtho(0, 80, 0, 60, -10, 10);
+	ortho.SetToOrtho(0, m_worldWidth, 0, m_worldHeight, -10, 10);
 	projectionStack.PushMatrix();
 	projectionStack.LoadMatrix(ortho);
 	viewStack.PushMatrix();
@@ -394,6 +397,21 @@ void SceneKinematics::Render()
 
 	RenderMesh(meshList[GEO_AXES], false);
 
+	Vector3 archerPosition = underwatch.GetArcher().GetPosition();
+	Vector3 healerPosition = underwatch.GetHealer().GetPosition();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(archerPosition.x, archerPosition.y, archerPosition.z);
+	modelStack.Scale(9, 9, 1);
+	RenderMesh(meshList[GEO_ARCHER], false);
+	modelStack.PopMatrix();
+
+	modelStack.PushMatrix();
+	modelStack.Translate(healerPosition.x, healerPosition.y, healerPosition.z);
+	modelStack.Scale(9, 9, 1);
+	RenderMesh(meshList[GEO_WORKER], false);
+	modelStack.PopMatrix();
+
 	for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
 	{
 		GameObject *go = (GameObject *)*it;
@@ -406,12 +424,30 @@ void SceneKinematics::Render()
 	{
 		RenderGO(m_ghost);
 	}
+	if (underwatch.GetArcher().getHP() <= 50)
+	{
+		RenderTextOnScreen(meshList[GEO_TEXT], "Archer:I need healing!", Color(0, 1, 0), 10, 90, 5);
+	}
+	else
+	{
+
+	}
 
 	//On screen text
 	std::ostringstream ss;
 	ss.precision(5);
 	ss << "FPS: " << fps;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 0), 3, 0, 3);
+	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 0), 15, 0, 3);
+
+	std::ostringstream ss2;
+	ss2.precision(3);
+	ss2 << underwatch.GetArcher().getHP();
+	RenderTextOnScreen(meshList[GEO_TEXT], ss2.str(), Color(0, 1, 0), 10, archerPosition.x - 14, archerPosition.y + 15);
+
+	std::ostringstream ss3;
+	ss3.precision(3);
+	ss3 << underwatch.GetHealer().getHP();
+	RenderTextOnScreen(meshList[GEO_TEXT], ss3.str(), Color(0, 1, 0), 10, healerPosition.x - 14, healerPosition.y + 15);
 
 	
 	//Exercise 6: print simulation speed

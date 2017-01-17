@@ -9,6 +9,7 @@
 #include "Light.h"
 #include "GameObject.h"
 #include "Random.h"
+#include "UnderWatch.h"
 #include <vector>
 
 class SceneKinematics : public Scene
@@ -110,6 +111,8 @@ private:
 
 	//AI
 	RNG rng;
+
+	UnderWatch underwatch;
 };
 
 #endif

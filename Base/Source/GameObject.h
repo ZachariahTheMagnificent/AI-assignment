@@ -21,6 +21,17 @@ struct GameObject
 
 	GameObject(GAMEOBJECT_TYPE typeValue = GO_BALL);
 	~GameObject();
+
+	Vector3 GetPosition()
+	{
+		return pos;
+	}
+	void SetPosition(float x, float y, float z)
+	{
+		pos.x = x;
+		pos.y = y;
+		pos.z = z;
+	}
 };
 
 #endif
