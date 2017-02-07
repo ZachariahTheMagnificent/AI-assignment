@@ -66,13 +66,7 @@
     <ClCompile Include="Source\Application.cpp">
       <Filter>Source Files\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Archer.cpp">
-      <Filter>Source Files\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Healer.cpp">
-      <Filter>Source Files\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UnderWatch.cpp">
+    <ClCompile Include="Source\CollisionSystem.cpp">
       <Filter>Source Files\AI</Filter>
     </ClCompile>
   </ItemGroup>
@@ -125,20 +119,11 @@
     <ClInclude Include="Source\Vertex.h">
       <Filter>Header Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Archer.h">
-      <Filter>Header Files\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Healer.h">
-      <Filter>Header Files\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Message.h">
-      <Filter>Header Files\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UnderWatch.h">
-      <Filter>Header Files\AI</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Application.h">
       <Filter>Header Files\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CollisionSystem.h">
+      <Filter>Header Files\AI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

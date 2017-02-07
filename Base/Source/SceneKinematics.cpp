@@ -22,184 +22,196 @@ SceneKinematics::~SceneKinematics()
 }
 
 
-void SceneKinematics::Init()
+void SceneKinematics::Init ( )
 {
 	// Black background
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+	glClearColor ( 0.0f, 0.0f, 0.4f, 0.0f );
 	// Enable depth test
-	glEnable(GL_DEPTH_TEST);
+	glEnable ( GL_DEPTH_TEST );
 	// Accept fragment if it closer to the camera than the former one
-	glDepthFunc(GL_LESS); 
-	
-	glEnable(GL_CULL_FACE);
-	
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glDepthFunc ( GL_LESS );
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable ( GL_CULL_FACE );
 
-	glGenVertexArrays(1, &m_vertexArrayID);
-	glBindVertexArray(m_vertexArrayID);
+	glPolygonMode ( GL_FRONT_AND_BACK, GL_FILL );
 
-	m_programID = LoadShaders( "Shader//comg.vertexshader", "Shader//comg.fragmentshader" );
-	
+	glEnable ( GL_BLEND );
+	glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	glGenVertexArrays ( 1, &m_vertexArrayID );
+	glBindVertexArray ( m_vertexArrayID );
+
+	m_programID = LoadShaders ( "Shader//comg.vertexshader", "Shader//comg.fragmentshader" );
+
 	// Get a handle for our uniform
-	m_parameters[U_MVP] = glGetUniformLocation(m_programID, "MVP");
+	m_parameters [ U_MVP ] = glGetUniformLocation ( m_programID, "MVP" );
 	//m_parameters[U_MODEL] = glGetUniformLocation(m_programID, "M");
 	//m_parameters[U_VIEW] = glGetUniformLocation(m_programID, "V");
-	m_parameters[U_MODELVIEW] = glGetUniformLocation(m_programID, "MV");
-	m_parameters[U_MODELVIEW_INVERSE_TRANSPOSE] = glGetUniformLocation(m_programID, "MV_inverse_transpose");
-	m_parameters[U_MATERIAL_AMBIENT] = glGetUniformLocation(m_programID, "material.kAmbient");
-	m_parameters[U_MATERIAL_DIFFUSE] = glGetUniformLocation(m_programID, "material.kDiffuse");
-	m_parameters[U_MATERIAL_SPECULAR] = glGetUniformLocation(m_programID, "material.kSpecular");
-	m_parameters[U_MATERIAL_SHININESS] = glGetUniformLocation(m_programID, "material.kShininess");
-	m_parameters[U_LIGHTENABLED] = glGetUniformLocation(m_programID, "lightEnabled");
-	m_parameters[U_NUMLIGHTS] = glGetUniformLocation(m_programID, "numLights");
-	m_parameters[U_LIGHT0_TYPE] = glGetUniformLocation(m_programID, "lights[0].type");
-	m_parameters[U_LIGHT0_POSITION] = glGetUniformLocation(m_programID, "lights[0].position_cameraspace");
-	m_parameters[U_LIGHT0_COLOR] = glGetUniformLocation(m_programID, "lights[0].color");
-	m_parameters[U_LIGHT0_POWER] = glGetUniformLocation(m_programID, "lights[0].power");
-	m_parameters[U_LIGHT0_KC] = glGetUniformLocation(m_programID, "lights[0].kC");
-	m_parameters[U_LIGHT0_KL] = glGetUniformLocation(m_programID, "lights[0].kL");
-	m_parameters[U_LIGHT0_KQ] = glGetUniformLocation(m_programID, "lights[0].kQ");
-	m_parameters[U_LIGHT0_SPOTDIRECTION] = glGetUniformLocation(m_programID, "lights[0].spotDirection");
-	m_parameters[U_LIGHT0_COSCUTOFF] = glGetUniformLocation(m_programID, "lights[0].cosCutoff");
-	m_parameters[U_LIGHT0_COSINNER] = glGetUniformLocation(m_programID, "lights[0].cosInner");
-	m_parameters[U_LIGHT0_EXPONENT] = glGetUniformLocation(m_programID, "lights[0].exponent");
+	m_parameters [ U_MODELVIEW ] = glGetUniformLocation ( m_programID, "MV" );
+	m_parameters [ U_MODELVIEW_INVERSE_TRANSPOSE ] = glGetUniformLocation ( m_programID, "MV_inverse_transpose" );
+	m_parameters [ U_MATERIAL_AMBIENT ] = glGetUniformLocation ( m_programID, "material.kAmbient" );
+	m_parameters [ U_MATERIAL_DIFFUSE ] = glGetUniformLocation ( m_programID, "material.kDiffuse" );
+	m_parameters [ U_MATERIAL_SPECULAR ] = glGetUniformLocation ( m_programID, "material.kSpecular" );
+	m_parameters [ U_MATERIAL_SHININESS ] = glGetUniformLocation ( m_programID, "material.kShininess" );
+	m_parameters [ U_LIGHTENABLED ] = glGetUniformLocation ( m_programID, "lightEnabled" );
+	m_parameters [ U_NUMLIGHTS ] = glGetUniformLocation ( m_programID, "numLights" );
+	m_parameters [ U_LIGHT0_TYPE ] = glGetUniformLocation ( m_programID, "lights[0].type" );
+	m_parameters [ U_LIGHT0_POSITION ] = glGetUniformLocation ( m_programID, "lights[0].position_cameraspace" );
+	m_parameters [ U_LIGHT0_COLOR ] = glGetUniformLocation ( m_programID, "lights[0].color" );
+	m_parameters [ U_LIGHT0_POWER ] = glGetUniformLocation ( m_programID, "lights[0].power" );
+	m_parameters [ U_LIGHT0_KC ] = glGetUniformLocation ( m_programID, "lights[0].kC" );
+	m_parameters [ U_LIGHT0_KL ] = glGetUniformLocation ( m_programID, "lights[0].kL" );
+	m_parameters [ U_LIGHT0_KQ ] = glGetUniformLocation ( m_programID, "lights[0].kQ" );
+	m_parameters [ U_LIGHT0_SPOTDIRECTION ] = glGetUniformLocation ( m_programID, "lights[0].spotDirection" );
+	m_parameters [ U_LIGHT0_COSCUTOFF ] = glGetUniformLocation ( m_programID, "lights[0].cosCutoff" );
+	m_parameters [ U_LIGHT0_COSINNER ] = glGetUniformLocation ( m_programID, "lights[0].cosInner" );
+	m_parameters [ U_LIGHT0_EXPONENT ] = glGetUniformLocation ( m_programID, "lights[0].exponent" );
 	// Get a handle for our "colorTexture" uniform
-	m_parameters[U_COLOR_TEXTURE_ENABLED] = glGetUniformLocation(m_programID, "colorTextureEnabled");
-	m_parameters[U_COLOR_TEXTURE] = glGetUniformLocation(m_programID, "colorTexture");
+	m_parameters [ U_COLOR_TEXTURE_ENABLED ] = glGetUniformLocation ( m_programID, "colorTextureEnabled" );
+	m_parameters [ U_COLOR_TEXTURE ] = glGetUniformLocation ( m_programID, "colorTexture" );
 	// Get a handle for our "textColor" uniform
-	m_parameters[U_TEXT_ENABLED] = glGetUniformLocation(m_programID, "textEnabled");
-	m_parameters[U_TEXT_COLOR] = glGetUniformLocation(m_programID, "textColor");
-	
+	m_parameters [ U_TEXT_ENABLED ] = glGetUniformLocation ( m_programID, "textEnabled" );
+	m_parameters [ U_TEXT_COLOR ] = glGetUniformLocation ( m_programID, "textColor" );
+
 	// Use our shader
-	glUseProgram(m_programID);
+	glUseProgram ( m_programID );
 
-	lights[0].type = Light::LIGHT_DIRECTIONAL;
-	lights[0].position.Set(0, 20, 0);
-	lights[0].color.Set(1, 1, 1);
-	lights[0].power = 1;
-	lights[0].kC = 1.f;
-	lights[0].kL = 0.01f;
-	lights[0].kQ = 0.001f;
-	lights[0].cosCutoff = cos(Math::DegreeToRadian(45));
-	lights[0].cosInner = cos(Math::DegreeToRadian(30));
-	lights[0].exponent = 3.f;
-	lights[0].spotDirection.Set(0.f, 1.f, 0.f);
-	
-	glUniform1i(m_parameters[U_NUMLIGHTS], 0);
-	glUniform1i(m_parameters[U_TEXT_ENABLED], 0);
+	lights [ 0 ].type = Light::LIGHT_DIRECTIONAL;
+	lights [ 0 ].position.Set ( 0, 20, 0 );
+	lights [ 0 ].color.Set ( 1, 1, 1 );
+	lights [ 0 ].power = 1;
+	lights [ 0 ].kC = 1.f;
+	lights [ 0 ].kL = 0.01f;
+	lights [ 0 ].kQ = 0.001f;
+	lights [ 0 ].cosCutoff = cos ( Math::DegreeToRadian ( 45 ) );
+	lights [ 0 ].cosInner = cos ( Math::DegreeToRadian ( 30 ) );
+	lights [ 0 ].exponent = 3.f;
+	lights [ 0 ].spotDirection.Set ( 0.f, 1.f, 0.f );
 
-	glUniform1i(m_parameters[U_LIGHT0_TYPE], lights[0].type);
-	glUniform3fv(m_parameters[U_LIGHT0_COLOR], 1, &lights[0].color.r);
-	glUniform1f(m_parameters[U_LIGHT0_POWER], lights[0].power);
-	glUniform1f(m_parameters[U_LIGHT0_KC], lights[0].kC);
-	glUniform1f(m_parameters[U_LIGHT0_KL], lights[0].kL);
-	glUniform1f(m_parameters[U_LIGHT0_KQ], lights[0].kQ);
-	glUniform1f(m_parameters[U_LIGHT0_COSCUTOFF], lights[0].cosCutoff);
-	glUniform1f(m_parameters[U_LIGHT0_COSINNER], lights[0].cosInner);
-	glUniform1f(m_parameters[U_LIGHT0_EXPONENT], lights[0].exponent);
+	glUniform1i ( m_parameters [ U_NUMLIGHTS ], 0 );
+	glUniform1i ( m_parameters [ U_TEXT_ENABLED ], 0 );
 
-	camera.Init(Vector3(0, 0, 1), Vector3(0, 0, 0), Vector3(0, 1, 0));
+	glUniform1i ( m_parameters [ U_LIGHT0_TYPE ], lights [ 0 ].type );
+	glUniform3fv ( m_parameters [ U_LIGHT0_COLOR ], 1, &lights [ 0 ].color.r );
+	glUniform1f ( m_parameters [ U_LIGHT0_POWER ], lights [ 0 ].power );
+	glUniform1f ( m_parameters [ U_LIGHT0_KC ], lights [ 0 ].kC );
+	glUniform1f ( m_parameters [ U_LIGHT0_KL ], lights [ 0 ].kL );
+	glUniform1f ( m_parameters [ U_LIGHT0_KQ ], lights [ 0 ].kQ );
+	glUniform1f ( m_parameters [ U_LIGHT0_COSCUTOFF ], lights [ 0 ].cosCutoff );
+	glUniform1f ( m_parameters [ U_LIGHT0_COSINNER ], lights [ 0 ].cosInner );
+	glUniform1f ( m_parameters [ U_LIGHT0_EXPONENT ], lights [ 0 ].exponent );
 
-	for(int i = 0; i < NUM_GEOMETRY; ++i)
+	camera.Init ( Vector3 ( 0, 0, 1 ), Vector3 ( 0, 0, 0 ), Vector3 ( 0, 1, 0 ) );
+
+	for ( int i = 0; i < NUM_GEOMETRY; ++i )
 	{
-		meshList[i] = NULL;
+		meshList [ i ] = NULL;
 	}
-	meshList[GEO_AXES] = MeshBuilder::GenerateAxes("reference", 1000, 1000, 1000);
-	meshList[GEO_BALL] = MeshBuilder::GenerateSphere("ball", Color(1, 1, 1), 10, 10, 1.f);
-	meshList[GEO_CUBE] = MeshBuilder::GenerateCube("cube", Color(1, 1, 1), 2.f);
-	meshList[GEO_MOTHERBASE] = MeshBuilder::GenerateQuad("motherbase", Color(0, 1, 0), 2.f);
-	meshList[GEO_MOTHERBASE]->textureID = LoadTGA("Image//base.tga");
-	meshList[GEO_ARROW] = MeshBuilder::GenerateSphere("arrow", Color(1, 1, 1), 10,10,1.f);
+	meshList [ GEO_AXES ] = MeshBuilder::GenerateAxes ( "reference", 1000, 1000, 1000 );
+	meshList [ GEO_BALL ] = MeshBuilder::GenerateSphere ( "ball", Color ( 1, 1, 1 ), 10, 10, 1.f );
+	meshList [ GEO_CUBE ] = MeshBuilder::GenerateCube ( "cube", Color ( 1, 1, 1 ), 2.f );
+	meshList [ GEO_MOTHERBASE ] = MeshBuilder::GenerateQuad ( "motherbase", Color ( 0, 1, 0 ), 2.f );
+	meshList [ GEO_MOTHERBASE ]->textureID = LoadTGA ( "Image//base.tga" );
+	meshList [ GEO_ARROW ] = MeshBuilder::GenerateSphere ( "arrow", Color ( 1, 1, 1 ), 10, 10, 1.f );
 	//meshList[GEO_ARROW]->textureID = LoadTGA("Image//arrow.tga");
-	meshList[GEO_ARCHER] = MeshBuilder::GenerateQuad("archer", Color(1, 0, 1), 2.f);
-	meshList[GEO_ARCHER]->textureID = LoadTGA("Image//Archers.tga");
-	meshList[GEO_UNRECRUITED_ARCHER] = MeshBuilder::GenerateQuad("unrecruited archer", Color(1, 1, 0), 2.f);
-	meshList[GEO_UNRECRUITED_ARCHER]->textureID = LoadTGA("Image//peasant.tga");
-	meshList[GEO_WORKER] = MeshBuilder::GenerateQuad("worker", Color(1, 0, 0), 2.f);
-	meshList[GEO_WORKER]->textureID = LoadTGA("Image//Engineer.tga");
-	meshList[GEO_RABBIT] = MeshBuilder::GenerateQuad("rabbit", Color(1, 1, 1), 2.f);
-	meshList[GEO_RABBIT]->textureID = LoadTGA("Image//Rabbit.tga");
-	meshList[GEO_DEAD_RABBIT] = MeshBuilder::GenerateQuad("dead rabbit", Color(0, 0, 0), 2.f);
-	meshList[GEO_MONSTER] = MeshBuilder::GenerateQuad("monster", Color(1, 1, 1), 2.f);
-	meshList[GEO_MONSTER]->textureID = LoadTGA("Image//zombies.tga");
-	meshList[GEO_WALL] = MeshBuilder::GenerateQuad("wall", Color(0, 1, 0), 2.f);
-	meshList[GEO_TEXT] = MeshBuilder::GenerateText("text", 16, 16);
-	meshList[GEO_TEXT]->textureID = LoadTGA("Image//calibri.tga");
-	meshList[GEO_TEXT]->material.kAmbient.Set(1, 0, 0);
+	meshList [ GEO_ARCHER ] = MeshBuilder::GenerateQuad ( "archer", Color ( 1, 0, 1 ), 2.f );
+	meshList [ GEO_ARCHER ]->textureID = LoadTGA ( "Image//Archers.tga" );
+	meshList [ GEO_UNRECRUITED_ARCHER ] = MeshBuilder::GenerateQuad ( "unrecruited archer", Color ( 1, 1, 0 ), 2.f );
+	meshList [ GEO_UNRECRUITED_ARCHER ]->textureID = LoadTGA ( "Image//peasant.tga" );
+	meshList [ GEO_WORKER ] = MeshBuilder::GenerateQuad ( "worker", Color ( 1, 0, 0 ), 2.f );
+	meshList [ GEO_WORKER ]->textureID = LoadTGA ( "Image//Engineer.tga" );
+	meshList [ GEO_RABBIT ] = MeshBuilder::GenerateQuad ( "rabbit", Color ( 1, 1, 1 ), 2.f );
+	meshList [ GEO_RABBIT ]->textureID = LoadTGA ( "Image//Rabbit.tga" );
+	meshList [ GEO_DEAD_RABBIT ] = MeshBuilder::GenerateQuad ( "dead rabbit", Color ( 0, 0, 0 ), 2.f );
+	meshList [ GEO_MONSTER ] = MeshBuilder::GenerateQuad ( "monster", Color ( 1, 1, 1 ), 2.f );
+	meshList [ GEO_MONSTER ]->textureID = LoadTGA ( "Image//zombies.tga" );
+	meshList [ GEO_WALL ] = MeshBuilder::GenerateQuad ( "wall", Color ( 0, 1, 0 ), 2.f );
+	meshList [ GEO_TEXT ] = MeshBuilder::GenerateText ( "text", 16, 16 );
+	meshList [ GEO_TEXT ]->textureID = LoadTGA ( "Image//calibri.tga" );
+	meshList [ GEO_TEXT ]->material.kAmbient.Set ( 1, 0, 0 );
 
 	bLightEnabled = false;
 
 	//Physics code here
 	m_speed = 1.f;
-	
-	m_gravity.Set(0, -9.8f, 0); //init gravity as 9.8ms-2 downwards
-	Math::InitRNG();
 
-	m_ghost = new GameObject(GameObject::GO_BALL);
+	m_gravity.Set ( 0, -9.8f, 0 ); //init gravity as 9.8ms-2 downwards
+	Math::InitRNG ( );
+
+	m_ghost = new GameObject ( GameObject::GO_BALL );
 	//Exercise 1: construct 10 GameObject with type GO_BALL and add into m_goList
 
-	underwatch.GetArcher().SetPosition(250,50,0);
-	underwatch.GetHealer().SetPosition(280,45, 0);
+	//underwatch.GetArcher ( ).pos = Vector3 ( 250, 50, 0 );
+	//underwatch.GetHealer ( ).pos = Vector3 ( 280, 45, 0 );
+
+	archers.Create ( Vector3 ( 100, 50, 0 ) );
+	leaders.Create ( Vector3 ( 250, 50, 0 ) );
+
+	std::vector<Vector3> node_positions;
+	node_positions.push_back ( Vector3 { 200, 300, 0 } );
+	node_positions.push_back ( Vector3 { 200, 10, 0 } );
+
+	std::vector<Line> line_boundaries;
+	line_boundaries.push_back ( Line { Vector3 { 200, 70, 0 }, Vector3 { 0, -40, 0 } } );
+
+	path_finding_system.Build ( node_positions, line_boundaries );
 }
 
-void SceneKinematics::Update(double dt)
+void SceneKinematics::Update ( double dt )
 {
 	//Keyboard Section
-	if(Application::IsKeyPressed('1'))
-		glEnable(GL_CULL_FACE);
-	if(Application::IsKeyPressed('2'))
-		glDisable(GL_CULL_FACE);
-	if(Application::IsKeyPressed('3'))
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	if(Application::IsKeyPressed('4'))
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	
-	if(Application::IsKeyPressed('+'))
+	if ( Application::IsKeyPressed ( '1' ) )
+		glEnable ( GL_CULL_FACE );
+	if ( Application::IsKeyPressed ( '2' ) )
+		glDisable ( GL_CULL_FACE );
+	if ( Application::IsKeyPressed ( '3' ) )
+		glPolygonMode ( GL_FRONT_AND_BACK, GL_FILL );
+	if ( Application::IsKeyPressed ( '4' ) )
+		glPolygonMode ( GL_FRONT_AND_BACK, GL_LINE );
+
+	if ( Application::IsKeyPressed ( '+' ) )
 	{
 		//Exercise 6: adjust simulation speed
 	}
-	if(Application::IsKeyPressed('-'))
+	if ( Application::IsKeyPressed ( '-' ) )
 	{
 		//Exercise 6: adjust simulation speed
 	}
-	if(Application::IsKeyPressed('c'))
+	if ( Application::IsKeyPressed ( 'c' ) )
 	{
 		//Exercise 9: clear screen
 	}
-	if(Application::IsKeyPressed(' '))
+	if ( Application::IsKeyPressed ( ' ' ) )
 	{
-		underwatch.damageArcher(1);
+		//underwatch.damageArcher(1);
 	}
-	if(Application::IsKeyPressed('V'))
+	if ( Application::IsKeyPressed ( 'V' ) )
 	{
-		underwatch.damageHealer(1);
+		//underwatch.damageHealer(1);
 	}
 
 	//Mouse Section
 	static bool bLButtonState = false;
 	//Exercise 10: ghost code here
-	if(!bLButtonState && Application::IsMousePressed(0))
+	if ( !bLButtonState && Application::IsMousePressed ( 0 ) )
 	{
 		bLButtonState = true;
 		std::cout << "LBUTTON DOWN" << std::endl;
-		
+
 		double x, y;
-		Application::GetCursorPos(&x, &y);
-		int w = Application::GetWindowWidth();
-		int h = Application::GetWindowHeight();
+		Application::GetCursorPos ( &x, &y );
+		int w = Application::GetWindowWidth ( );
+		int h = Application::GetWindowHeight ( );
 
 		//Exercise 10: spawn ghost ball
 	}
-	else if(bLButtonState && !Application::IsMousePressed(0))
+	else if ( bLButtonState && !Application::IsMousePressed ( 0 ) )
 	{
 		bLButtonState = false;
 		std::cout << "LBUTTON UP" << std::endl;
-		
+
 		//Exercise 4: spawn ball
-						
+
 		//Exercise 10: replace Exercise 4 code and use ghost to determine ball velocity
 
 		//Exercise 11: kinematics equation
@@ -208,37 +220,37 @@ void SceneKinematics::Update(double dt)
 
 		//v * v = u * u + 2 * a * s
 		//s = - (u * u) / (2 * a)
-						
+
 		//s = u * t + 0.5 * a * t * t
 		//(0.5 * a) * t * t + (u) * t + (-s) = 0
 	}
-	
+
 	static bool bRButtonState = false;
-	if(!bRButtonState && Application::IsMousePressed(1))
+	if ( !bRButtonState && Application::IsMousePressed ( 1 ) )
 	{
 		bRButtonState = true;
 		std::cout << "RBUTTON DOWN" << std::endl;
 		//Exercise 7: spawn obstacles using GO_CUBE
 	}
-	else if(bRButtonState && !Application::IsMousePressed(1))
+	else if ( bRButtonState && !Application::IsMousePressed ( 1 ) )
 	{
 		bRButtonState = false;
 		std::cout << "RBUTTON UP" << std::endl;
 	}
 
 	//Physics Simulation Section
-	fps = (float)(1.f / dt);
+	fps = ( float ) ( 1.f / dt );
 
 	//Exercise 11: update kinematics information
-	for(std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
+	for ( std::vector<GameObject *>::iterator it = m_goList.begin ( ); it != m_goList.end ( ); ++it )
 	{
-		GameObject *go = (GameObject *)*it;
-		if(go->active)
+		GameObject *go = ( GameObject * ) *it;
+		if ( go->active )
 		{
-			if(go->type == GameObject::GO_BALL)
+			if ( go->type == GameObject::GO_BALL )
 			{
 				//Exercise 2: implement equation 1 & 2
-				
+
 				//Exercise 12: replace Exercise 2 code and use average speed instead
 			}
 
@@ -248,6 +260,94 @@ void SceneKinematics::Update(double dt)
 		}
 	}
 
+	timer_system.Update ( arrows.time_until_deaths, dt );
+	timer_system.Update ( monsters.time_until_next_attacks, dt );
+	timer_system.Update ( archers.time_until_next_arrows, dt );
+
+	physics_system.Update ( arrows.positions, arrows.directions, arrows.speeds, dt );
+	physics_system.Update ( monsters.positions, monsters.directions, monsters.speeds, dt );
+	physics_system.Update ( archers.positions, archers.directions, archers.speeds, dt );
+
+	std::vector<bool> collision_results;
+
+	collision_system.CheckCollision ( arrows.positions, arrows.radius_squareds, monsters.positions, monsters.radius_squareds, collision_results );
+
+	auto collision_result = collision_results.begin ( );
+	for ( std::size_t arrow_index = 0, arrow_size = arrows.positions.size ( ); arrow_index < arrow_size; ++arrow_index )
+	{
+		for ( std::size_t monster_index = 0, monster_size = monsters.positions.size ( ); monster_index < monster_size; ++monster_index )
+		{
+			if ( *collision_result )
+			{
+				arrows.deads [ arrow_index ] = true;
+				monsters.states [ monster_index ] = MonsterState::DEAD;
+			}
+
+			++collision_result;
+		}
+	}
+
+	collision_system.CheckCollision ( archers.positions, archers.radius_squareds, monsters.positions, monsters.aggro_radius_squareds, collision_results );
+
+	collision_result = collision_results.begin ( );
+	for ( std::size_t archer_index = 0, archer_size = archers.positions.size ( ); archer_index < archer_size; ++archer_index )
+	{
+		for ( std::size_t monster_index = 0, monster_size = monsters.positions.size ( ); monster_index < monster_size; ++monster_index )
+		{
+			if ( *collision_result )
+			{
+				switch ( archers.states [ archer_index ] )
+				{
+					case ArcherState::FOLLOW:
+					{
+						archers.states [ archer_index ] = ArcherState::ATTACK;
+						break;
+					}
+					case ArcherState::ATTACK:
+					{
+						if ( archers.time_until_next_arrows[archer_index] <= 0 && monsters.states[monster_index] != MonsterState::DEAD )
+						{
+							arrows.Create ( archers.positions [ archer_index ], ( monsters.positions [ monster_index ] - archers.positions [ archer_index ] ).Normalized ( ) );
+							archers.time_until_next_arrows [ archer_index ] = 3;
+							break;
+						}
+					}
+				}
+			}
+
+			++collision_result;
+		}
+	}
+
+	for ( std::size_t archer_index = 0, archer_size = archers.positions.size ( ); archer_index < archer_size; ++archer_index )
+	{
+		if ( archers.time_until_next_arrows [ archer_index ] < 0 )
+		{
+			archers.time_until_next_arrows [ archer_index ] = 0;
+		}
+	}
+
+	collision_system.CheckCollision ( archers.positions, archers.radius_squareds, monsters.positions, monsters.radius_squareds, collision_results );
+
+	collision_result = collision_results.begin ( );
+	for ( std::size_t archer_index = 0, archer_size = archers.positions.size ( ); archer_index < archer_size; ++archer_index )
+	{
+		for ( std::size_t monster_index = 0, monster_size = monsters.positions.size ( ); monster_index < monster_size; ++monster_index )
+		{
+			if ( *collision_result )
+			{
+				archers.states [ archer_index ] = ArcherState::DEAD;
+			}
+
+			++collision_result;
+		}
+	}
+
+	for ( std::size_t index = 0, size = archers.positions.size ( ); index < size; ++index )
+	{
+		const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( archers.positions [ index ], leaders.positions.front ( ) );
+		archers.directions [ index ] = ( next_destination - archers.positions [ index ] ).Normalized ( );
+	}
 }
 
 void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
@@ -397,20 +497,20 @@ void SceneKinematics::Render()
 
 	RenderMesh(meshList[GEO_AXES], false);
 
-	Vector3 archerPosition = underwatch.GetArcher().GetPosition();
-	Vector3 healerPosition = underwatch.GetHealer().GetPosition();
+	//Vector3 archerPosition = underwatch.GetArcher().pos;
+	//Vector3 healerPosition = underwatch.GetHealer().pos;
 
-	modelStack.PushMatrix();
-	modelStack.Translate(archerPosition.x, archerPosition.y, archerPosition.z);
-	modelStack.Scale(9, 9, 1);
-	RenderMesh(meshList[GEO_ARCHER], false);
-	modelStack.PopMatrix();
+	//modelStack.PushMatrix();
+	//modelStack.Translate(archerPosition.x, archerPosition.y, archerPosition.z);
+	//modelStack.Scale(9, 9, 1);
+	//RenderMesh(meshList[GEO_ARCHER], false);
+	//modelStack.PopMatrix();
 
-	modelStack.PushMatrix();
-	modelStack.Translate(healerPosition.x, healerPosition.y, healerPosition.z);
-	modelStack.Scale(9, 9, 1);
-	RenderMesh(meshList[GEO_WORKER], false);
-	modelStack.PopMatrix();
+	//modelStack.PushMatrix();
+	//modelStack.Translate(healerPosition.x, healerPosition.y, healerPosition.z);
+	//modelStack.Scale(9, 9, 1);
+	//RenderMesh(meshList[GEO_WORKER], false);
+	//modelStack.PopMatrix();
 
 	for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
 	{
@@ -424,10 +524,10 @@ void SceneKinematics::Render()
 	{
 		RenderGO(m_ghost);
 	}
-	if (underwatch.GetArcher().getHP() <= 50)
-	{
-		RenderTextOnScreen(meshList[GEO_TEXT], "Archer:I need healing!", Color(0, 1, 0), 10, 90, 5);
-	}
+	//if (underwatch.GetArcher().getHP() <= 50)
+	//{
+	//	RenderTextOnScreen(meshList[GEO_TEXT], "Archer:I need healing!", Color(0, 1, 0), 10, 90, 5);
+	//}
 	else
 	{
 
@@ -439,15 +539,15 @@ void SceneKinematics::Render()
 	ss << "FPS: " << fps;
 	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 0), 15, 0, 3);
 
-	std::ostringstream ss2;
-	ss2.precision(3);
-	ss2 << underwatch.GetArcher().getHP();
-	RenderTextOnScreen(meshList[GEO_TEXT], ss2.str(), Color(0, 1, 0), 10, archerPosition.x - 14, archerPosition.y + 15);
+	//std::ostringstream ss2;
+	//ss2.precision(3);
+	//ss2 << underwatch.GetArcher().getHP();
+	//RenderTextOnScreen(meshList[GEO_TEXT], ss2.str(), Color(0, 1, 0), 10, archerPosition.x - 14, archerPosition.y + 15);
 
-	std::ostringstream ss3;
-	ss3.precision(3);
-	ss3 << underwatch.GetHealer().getHP();
-	RenderTextOnScreen(meshList[GEO_TEXT], ss3.str(), Color(0, 1, 0), 10, healerPosition.x - 14, healerPosition.y + 15);
+	//std::ostringstream ss3;
+	//ss3.precision(3);
+	//ss3 << underwatch.GetHealer().getHP();
+	//RenderTextOnScreen(meshList[GEO_TEXT], ss3.str(), Color(0, 1, 0), 10, healerPosition.x - 14, healerPosition.y + 15);
 
 	
 	//Exercise 6: print simulation speed
@@ -457,6 +557,58 @@ void SceneKinematics::Render()
 	//Exercise 11: print kinematics information
 
 	//RenderTextOnScreen(meshList[GEO_TEXT], "Kinematics", Color(0, 1, 0), 3, 0, 0);
+
+	for ( std::size_t index = 0, size = arrows.positions.size ( ); index < size; ++index )
+	{
+		if ( !arrows.deads [ index ] )
+		{
+			const Vector3 position = arrows.positions [ index ];
+			modelStack.PushMatrix ( );
+			modelStack.Translate ( position.x, position.y, position.z );
+			modelStack.Scale ( 9, 9, 1 );
+			RenderMesh ( meshList [ GEO_ARROW ], false );
+			modelStack.PopMatrix ( );
+		}
+	}
+
+	for ( std::size_t index = 0, size = archers.positions.size ( ); index < size; ++index )
+	{
+		if ( archers.states [ index ] != ArcherState::DEAD )
+		{
+			const Vector3 position = archers.positions [ index ];
+			modelStack.PushMatrix ( );
+			modelStack.Translate ( position.x, position.y, position.z );
+			modelStack.Scale ( 9, 9, 1 );
+			RenderMesh ( meshList [ GEO_ARCHER ], false );
+			modelStack.PopMatrix ( );
+		}
+	}
+
+	for ( std::size_t index = 0, size = monsters.positions.size ( ); index < size; ++index )
+	{
+		if ( monsters.states[ index ] != MonsterState::DEAD )
+		{
+			const Vector3 position = monsters.positions [ index ];
+			modelStack.PushMatrix ( );
+			modelStack.Translate ( position.x, position.y, position.z );
+			modelStack.Scale ( 9, 9, 1 );
+			RenderMesh ( meshList [ GEO_MONSTER ], false );
+			modelStack.PopMatrix ( );
+		}
+	}
+	
+	for ( std::size_t index = 0, size = leaders.positions.size ( ); index < size; ++index )
+	{
+		if ( leaders.states [ index ] != LeaderState::DEAD )
+		{
+			const Vector3 position = leaders.positions [ index ];
+			modelStack.PushMatrix ( );
+			modelStack.Translate ( position.x, position.y, position.z );
+			modelStack.Scale ( 9, 9, 1 );
+			RenderMesh ( meshList [ GEO_UNRECRUITED_ARCHER ], false );
+			modelStack.PopMatrix ( );
+		}
+	}
 }
 
 void SceneKinematics::Exit()

@@ -9,7 +9,7 @@
 #include "Light.h"
 #include "GameObject.h"
 #include "Random.h"
-#include "UnderWatch.h"
+#include "CollisionSystem.h"
 #include <vector>
 
 class SceneKinematics : public Scene
@@ -112,7 +112,16 @@ private:
 	//AI
 	RNG rng;
 
-	UnderWatch underwatch;
+	CountdownSystem timer_system;
+	PhysicsSystem physics_system;
+	CollisionSystem collision_system;
+	PathFinder path_finding_system;
+
+	Leaders leaders;
+	Archers archers;
+	Arrows arrows;
+	Monsters monsters;
+
 };
 
 #endif

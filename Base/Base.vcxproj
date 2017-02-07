@@ -12,11 +12,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Application.cpp" />
-    <ClCompile Include="Source\Archer.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\CheckIfVectorsCollide.cpp" />
+    <ClCompile Include="Source\CollisionSystem.cpp" />
     <ClCompile Include="Source\GameObject.cpp" />
-    <ClCompile Include="Source\Healer.cpp" />
     <ClCompile Include="Source\LoadOBJ.cpp" />
     <ClCompile Include="Source\LoadTGA.cpp" />
     <ClCompile Include="Source\main.cpp" />
@@ -25,29 +24,25 @@
     <ClCompile Include="Source\Random.cpp" />
     <ClCompile Include="Source\SceneKinematics.cpp" />
     <ClCompile Include="Source\shader.cpp" />
-    <ClCompile Include="Source\UnderWatch.cpp" />
     <ClCompile Include="Source\Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Application.h" />
-    <ClInclude Include="Source\Archer.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CheckIfVectorsCollide.h" />
+    <ClInclude Include="Source\CollisionSystem.h" />
     <ClInclude Include="Source\GameObject.h" />
     <ClInclude Include="Source\Geometry.h" />
-    <ClInclude Include="Source\Healer.h" />
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LoadOBJ.h" />
     <ClInclude Include="Source\LoadTGA.h" />
     <ClInclude Include="Source\Material.h" />
     <ClInclude Include="Source\Mesh.h" />
     <ClInclude Include="Source\MeshBuilder.h" />
-    <ClInclude Include="Source\Message.h" />
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\Scene.h" />
     <ClInclude Include="Source\SceneKinematics.h" />
     <ClInclude Include="Source\shader.hpp" />
-    <ClInclude Include="Source\UnderWatch.h" />
     <ClInclude Include="Source\Utility.h" />
     <ClInclude Include="Source\Vertex.h" />
   </ItemGroup>
