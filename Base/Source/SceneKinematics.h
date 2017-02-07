@@ -57,6 +57,9 @@ class SceneKinematics : public Scene
 		GEO_RABBIT,
 		GEO_DEAD_RABBIT,
 		GEO_MONSTER,
+		GEO_LEADER,
+		GEO_HEALER,
+		GEO_TREASURE,
 		NUM_GEOMETRY,
 	};
 public:
@@ -74,6 +77,18 @@ public:
 	void RenderGO(GameObject *go);
 
 private:
+	void RandomiseTreasureLocation ( )
+	{
+		treasure.front ( ) = Vector3 { rng.RandFloat ( 0, m_worldWidth ), rng.RandFloat ( 0, m_worldHeight ), 0 };
+
+		monsters.Clear ( );
+
+		for ( std::size_t index = 0; index < 2; ++index )
+		{
+			monsters.Create ( Vector3 { rng.RandFloat ( 0, m_worldWidth ), rng.RandFloat ( 0, m_worldHeight ), 0 } );
+		}
+	}
+
 	unsigned m_vertexArrayID;
 	Mesh* meshList[NUM_GEOMETRY];
 	unsigned m_programID;
@@ -117,8 +132,10 @@ private:
 	CollisionSystem collision_system;
 	PathFinder path_finding_system;
 
+	std::vector<Vector3> treasure;
 	Leaders leaders;
 	Archers archers;
+	Healers healers;
 	Arrows arrows;
 	Monsters monsters;
 

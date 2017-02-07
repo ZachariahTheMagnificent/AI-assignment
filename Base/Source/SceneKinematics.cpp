@@ -116,6 +116,8 @@ void SceneKinematics::Init ( )
 	//meshList[GEO_ARROW]->textureID = LoadTGA("Image//arrow.tga");
 	meshList [ GEO_ARCHER ] = MeshBuilder::GenerateQuad ( "archer", Color ( 1, 0, 1 ), 2.f );
 	meshList [ GEO_ARCHER ]->textureID = LoadTGA ( "Image//Archers.tga" );
+	meshList [ GEO_HEALER ] = MeshBuilder::GenerateQuad ( "healer", Color ( 1, 0, 1 ), 2.f );
+	meshList [ GEO_HEALER ]->textureID = LoadTGA ( "Image//healer.tga" );
 	meshList [ GEO_UNRECRUITED_ARCHER ] = MeshBuilder::GenerateQuad ( "unrecruited archer", Color ( 1, 1, 0 ), 2.f );
 	meshList [ GEO_UNRECRUITED_ARCHER ]->textureID = LoadTGA ( "Image//peasant.tga" );
 	meshList [ GEO_WORKER ] = MeshBuilder::GenerateQuad ( "worker", Color ( 1, 0, 0 ), 2.f );
@@ -125,6 +127,10 @@ void SceneKinematics::Init ( )
 	meshList [ GEO_DEAD_RABBIT ] = MeshBuilder::GenerateQuad ( "dead rabbit", Color ( 0, 0, 0 ), 2.f );
 	meshList [ GEO_MONSTER ] = MeshBuilder::GenerateQuad ( "monster", Color ( 1, 1, 1 ), 2.f );
 	meshList [ GEO_MONSTER ]->textureID = LoadTGA ( "Image//zombies.tga" );
+	meshList [ GEO_TREASURE ] = MeshBuilder::GenerateQuad ( "treasure", Color ( 1, 1, 1 ), 2.f );
+	meshList [ GEO_TREASURE ]->textureID = LoadTGA ( "Image//treasure.tga" );
+	meshList [ GEO_LEADER ] = MeshBuilder::GenerateQuad ( "leader", Color ( 1, 1, 1 ), 2.f );
+	meshList [ GEO_LEADER ]->textureID = LoadTGA ( "Image//leader.tga" );
 	meshList [ GEO_WALL ] = MeshBuilder::GenerateQuad ( "wall", Color ( 0, 1, 0 ), 2.f );
 	meshList [ GEO_TEXT ] = MeshBuilder::GenerateText ( "text", 16, 16 );
 	meshList [ GEO_TEXT ]->textureID = LoadTGA ( "Image//calibri.tga" );
@@ -146,6 +152,7 @@ void SceneKinematics::Init ( )
 
 	archers.Create ( Vector3 ( 100, 50, 0 ) );
 	leaders.Create ( Vector3 ( 250, 50, 0 ) );
+	healers.Create ( Vector3 ( 50, 50, 0 ) );
 
 	std::vector<Vector3> node_positions;
 	node_positions.push_back ( Vector3 { 200, 300, 0 } );
@@ -155,6 +162,10 @@ void SceneKinematics::Init ( )
 	line_boundaries.push_back ( Line { Vector3 { 200, 70, 0 }, Vector3 { 0, -40, 0 } } );
 
 	path_finding_system.Build ( node_positions, line_boundaries );
+
+	treasure.resize ( 1 );
+
+	RandomiseTreasureLocation ( );
 }
 
 void SceneKinematics::Update ( double dt )
@@ -267,6 +278,7 @@ void SceneKinematics::Update ( double dt )
 	physics_system.Update ( arrows.positions, arrows.directions, arrows.speeds, dt );
 	physics_system.Update ( monsters.positions, monsters.directions, monsters.speeds, dt );
 	physics_system.Update ( archers.positions, archers.directions, archers.speeds, dt );
+	physics_system.Update ( leaders.positions, leaders.directions, leaders.speeds, dt );
 
 	std::vector<bool> collision_results;
 
@@ -343,10 +355,32 @@ void SceneKinematics::Update ( double dt )
 		}
 	}
 
+	collision_system.CheckCollision ( leaders.positions, leaders.radius_squareds, treasure, leaders.radius_squareds, collision_results );
+
+	collision_result = collision_results.begin ( );
+	for ( std::size_t leader_index = 0, leader_size = leaders.positions.size ( ); leader_index < leader_size; ++leader_index )
+	{
+		for ( std::size_t treasure_index = 0, treasure_size = treasure.size ( ); treasure_index < treasure_size; ++treasure_index )
+		{
+			if ( *collision_result )
+			{
+				RandomiseTreasureLocation ( );
+			}
+
+			++collision_result;
+		}
+	}
+
 	for ( std::size_t index = 0, size = archers.positions.size ( ); index < size; ++index )
 	{
 		const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( archers.positions [ index ], leaders.positions.front ( ) );
 		archers.directions [ index ] = ( next_destination - archers.positions [ index ] ).Normalized ( );
+	}
+
+	for ( std::size_t index = 0, size = leaders.positions.size ( ); index < size; ++index )
+	{
+		const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( leaders.positions [ index ], treasure.front ( ) );
+		leaders.directions [ index ] = ( next_destination - leaders.positions [ index ] ).Normalized ( );
 	}
 }
 
@@ -605,9 +639,31 @@ void SceneKinematics::Render()
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
-			RenderMesh ( meshList [ GEO_UNRECRUITED_ARCHER ], false );
+			RenderMesh ( meshList [ GEO_LEADER ], false );
 			modelStack.PopMatrix ( );
 		}
+	}
+
+	for ( std::size_t index = 0, size = healers.positions.size ( ); index < size; ++index )
+	{
+		if ( healers.states [ index ] != HealerState::DEAD )
+		{
+			const Vector3 position = healers.positions [ index ];
+			modelStack.PushMatrix ( );
+			modelStack.Translate ( position.x, position.y, position.z );
+			modelStack.Scale ( 9, 9, 1 );
+			RenderMesh ( meshList [ GEO_HEALER ], false );
+			modelStack.PopMatrix ( );
+		}
+	}
+
+	for ( const Vector3 position : treasure )
+	{
+		modelStack.PushMatrix ( );
+		modelStack.Translate ( position.x, position.y, position.z );
+		modelStack.Scale ( 9, 9, 1 );
+		RenderMesh ( meshList [ GEO_TREASURE ], false );
+		modelStack.PopMatrix ( );
 	}
 }
 

@@ -352,6 +352,9 @@ struct Arrows final
 		deads.push_back ( false );
 		time_until_deaths.push_back ( 5 );
 	}
+	void ClearDead ( )
+	{
+	}
 
 	std::vector<Vector3> positions;
 	std::vector<Vector3> directions;
@@ -372,6 +375,19 @@ struct Monsters final
 		time_until_next_attacks.push_back ( 0 );
 		states.push_back ( MonsterState::WAIT );
 		aggro_radius_squareds.push_back ( 150 * 150 );
+	}
+	void ClearDead ( )
+	{
+	}
+	void Clear ( )
+	{
+		positions.clear ( );
+		directions.clear ( );
+		speeds.clear ( );
+		radius_squareds.clear ( );
+		time_until_next_attacks.clear ( );
+		states.clear ( );
+		aggro_radius_squareds.clear ( );
 	}
 
 	std::vector<Vector3> positions;
@@ -433,7 +449,7 @@ struct Leaders final
 	{
 		positions.push_back ( position );
 		directions.push_back ( Vector3 { } );
-		speeds.push_back ( 50 );
+		speeds.push_back ( 100 );
 		radius_squareds.push_back ( 5 * 5 );
 		states.push_back ( LeaderState::SEARCH_TREASURE );
 	}
