@@ -153,6 +153,7 @@ void SceneKinematics::Init ( )
 	archers.Create ( Vector3 ( 100, 50, 0 ) );
 	leaders.Create ( Vector3 ( 250, 50, 0 ) );
 	healers.Create ( Vector3 ( 50, 50, 0 ) );
+	tanks.Create ( Vector3 ( 25, 50, 0 ) );
 
 	std::vector<Vector3> node_positions;
 	node_positions.push_back ( Vector3 { 200, 300, 0 } );
@@ -161,7 +162,7 @@ void SceneKinematics::Init ( )
 	std::vector<Line> line_boundaries;
 	line_boundaries.push_back ( Line { Vector3 { 200, 70, 0 }, Vector3 { 0, -40, 0 } } );
 
-	path_finding_system.Build ( node_positions, line_boundaries );
+	//path_finding_system.Build ( node_positions, line_boundaries );
 
 	treasure.resize ( 1 );
 
@@ -271,117 +272,432 @@ void SceneKinematics::Update ( double dt )
 		}
 	}
 
-	timer_system.Update ( arrows.time_until_deaths, dt );
-	timer_system.Update ( monsters.time_until_next_attacks, dt );
-	timer_system.Update ( archers.time_until_next_arrows, dt );
-
 	physics_system.Update ( arrows.positions, arrows.directions, arrows.speeds, dt );
 	physics_system.Update ( monsters.positions, monsters.directions, monsters.speeds, dt );
 	physics_system.Update ( archers.positions, archers.directions, archers.speeds, dt );
 	physics_system.Update ( leaders.positions, leaders.directions, leaders.speeds, dt );
+	physics_system.Update ( healers.positions, healers.directions, healers.speeds, dt );
+	physics_system.Update ( tanks.positions, tanks.directions, tanks.speeds, dt );
 
-	std::vector<bool> collision_results;
-
-	collision_system.CheckCollision ( arrows.positions, arrows.radius_squareds, monsters.positions, monsters.radius_squareds, collision_results );
-
-	auto collision_result = collision_results.begin ( );
-	for ( std::size_t arrow_index = 0, arrow_size = arrows.positions.size ( ); arrow_index < arrow_size; ++arrow_index )
+	for ( std::size_t index = 0, size = arrows.positions.size ( ); index < size; ++index )
 	{
-		for ( std::size_t monster_index = 0, monster_size = monsters.positions.size ( ); monster_index < monster_size; ++monster_index )
+		if ( !arrows.deads [ index ] )
 		{
-			if ( *collision_result )
-			{
-				arrows.deads [ arrow_index ] = true;
-				monsters.states [ monster_index ] = MonsterState::DEAD;
-			}
-
-			++collision_result;
+			arrows.time_until_deaths [ index ] -= dt;
 		}
 	}
 
-	collision_system.CheckCollision ( archers.positions, archers.radius_squareds, monsters.positions, monsters.aggro_radius_squareds, collision_results );
-
-	collision_result = collision_results.begin ( );
-	for ( std::size_t archer_index = 0, archer_size = archers.positions.size ( ); archer_index < archer_size; ++archer_index )
+	for ( std::size_t index = 0, size = monsters.positions.size ( ); index < size; ++index )
 	{
-		for ( std::size_t monster_index = 0, monster_size = monsters.positions.size ( ); monster_index < monster_size; ++monster_index )
+		monsters.directions [ index ] = Vector3 { };
+
+		switch ( monsters.states [ index ] )
 		{
-			if ( *collision_result )
+			case MonsterState::ATTACK:
 			{
-				switch ( archers.states [ archer_index ] )
+				monsters.time_until_next_attacks [ index ] -= dt;
+				if ( monsters.TargetIsDead [ index ] ( ) )
 				{
-					case ArcherState::FOLLOW:
+					monsters.states [ index ] = MonsterState::WAIT;
+				}
+				else if ( monsters.TargetInRange [ index ] ( ) )
+				{
+					if ( monsters.time_until_next_attacks [ index ] <= 0 )
 					{
-						archers.states [ archer_index ] = ArcherState::ATTACK;
-						break;
-					}
-					case ArcherState::ATTACK:
-					{
-						if ( archers.time_until_next_arrows[archer_index] <= 0 && monsters.states[monster_index] != MonsterState::DEAD )
-						{
-							arrows.Create ( archers.positions [ archer_index ], ( monsters.positions [ monster_index ] - archers.positions [ archer_index ] ).Normalized ( ) );
-							archers.time_until_next_arrows [ archer_index ] = 3;
-							break;
-						}
+						monsters.DamageTarget [ index ] ( monsters.default_damage );
+
+						monsters.time_until_next_attacks [ index ] = monsters.default_time_until_next_attack;
 					}
 				}
+				else
+				{
+					const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( monsters.positions [ index ], monsters.GetTargetPosition [ index ] ( ) );
+					monsters.directions [ index ] = ( next_destination - monsters.positions [ index ] ).Normalized ( );
+				}
 			}
-
-			++collision_result;
-		}
-	}
-
-	for ( std::size_t archer_index = 0, archer_size = archers.positions.size ( ); archer_index < archer_size; ++archer_index )
-	{
-		if ( archers.time_until_next_arrows [ archer_index ] < 0 )
-		{
-			archers.time_until_next_arrows [ archer_index ] = 0;
-		}
-	}
-
-	collision_system.CheckCollision ( archers.positions, archers.radius_squareds, monsters.positions, monsters.radius_squareds, collision_results );
-
-	collision_result = collision_results.begin ( );
-	for ( std::size_t archer_index = 0, archer_size = archers.positions.size ( ); archer_index < archer_size; ++archer_index )
-	{
-		for ( std::size_t monster_index = 0, monster_size = monsters.positions.size ( ); monster_index < monster_size; ++monster_index )
-		{
-			if ( *collision_result )
-			{
-				archers.states [ archer_index ] = ArcherState::DEAD;
-			}
-
-			++collision_result;
-		}
-	}
-
-	collision_system.CheckCollision ( leaders.positions, leaders.radius_squareds, treasure, leaders.radius_squareds, collision_results );
-
-	collision_result = collision_results.begin ( );
-	for ( std::size_t leader_index = 0, leader_size = leaders.positions.size ( ); leader_index < leader_size; ++leader_index )
-	{
-		for ( std::size_t treasure_index = 0, treasure_size = treasure.size ( ); treasure_index < treasure_size; ++treasure_index )
-		{
-			if ( *collision_result )
-			{
-				RandomiseTreasureLocation ( );
-			}
-
-			++collision_result;
 		}
 	}
 
 	for ( std::size_t index = 0, size = archers.positions.size ( ); index < size; ++index )
 	{
-		const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( archers.positions [ index ], leaders.positions.front ( ) );
-		archers.directions [ index ] = ( next_destination - archers.positions [ index ] ).Normalized ( );
+		archers.directions [ index ] = Vector3 { };
+
+		switch ( archers.states [ index ] )
+		{
+			case ArcherState::FOLLOW:
+			{
+				if ( leaders.states.front ( ) != LeaderState::DEAD )
+				{
+					const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( archers.positions [ index ], leaders.positions.front ( ) );
+					archers.directions [ index ] = ( next_destination - archers.positions [ index ] ).Normalized ( );
+				}
+				break;
+			}
+			case ArcherState::ATTACK:
+			{
+				archers.time_until_next_arrows [ index ] -= dt;
+				if ( archers.time_until_next_arrows [ index ] <= 0 && monsters.states [ leaders.targets.front ( ) ] != MonsterState::DEAD )
+				{
+					arrows.Create ( archers.positions [ index ], ( monsters.positions [ leaders.targets.front ( ) ] - archers.positions [ index ] ).Normalized ( ) );
+					archers.time_until_next_arrows [ index ] = archers.default_time_until_next_arrow;
+				}
+				break;
+			}
+			case ArcherState::SPEED_FIRE:
+			{
+				monsters.directions [ index ] = Vector3 { };
+				if ( monsters.states [ leaders.targets.front ( ) ] != MonsterState::DEAD )
+				{
+					arrows.Create ( archers.positions [ index ], ( monsters.positions [ leaders.targets.front ( ) ] - archers.positions [ index ] ).Normalized ( ) );
+				}
+				break;
+			}
+		}
+	}
+
+	for ( std::size_t index = 0, size = healers.positions.size ( ); index < size; ++index )
+	{
+		healers.directions [ index ] = Vector3 { };
+
+		switch ( healers.states [ index ] )
+		{
+			case HealerState::FOLLOW:
+			{
+				if ( leaders.states.front ( ) != LeaderState::DEAD )
+				{
+					const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( healers.positions [ index ], leaders.positions.front ( ) );
+					healers.directions [ index ] = ( next_destination - healers.positions [ index ] ).Normalized ( );
+					break;
+				}
+			}
+			case HealerState::CLOAK:
+			{
+				break;
+			}
+			case HealerState::HEAL:
+			{
+				break;
+			}
+		}
 	}
 
 	for ( std::size_t index = 0, size = leaders.positions.size ( ); index < size; ++index )
 	{
-		const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( leaders.positions [ index ], treasure.front ( ) );
-		leaders.directions [ index ] = ( next_destination - leaders.positions [ index ] ).Normalized ( );
+		leaders.directions [ index ] = Vector3 { };
+
+		switch ( leaders.states [ index ] )
+		{
+			case LeaderState::SEARCH_TREASURE:
+			{
+				const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( leaders.positions [ index ], treasure.front ( ) );
+				leaders.directions [ index ] = ( next_destination - leaders.positions [ index ] ).Normalized ( );
+				break;
+			}
+			case LeaderState::ATTACK:
+			{
+				leaders.time_until_next_attacks [ index ] -= dt;
+
+				const float total_radius = monsters.radiuses [ leaders.targets [ index ] ] + leaders.radiuses [ index ];
+				const float total_radius_squared = total_radius * total_radius;
+
+				if ( monsters.states [ leaders.targets.front ( ) ] == MonsterState::DEAD )
+				{
+					if ( archers.states [ index ] != ArcherState::DEAD )
+					{
+						archers.states [ index ] = ArcherState::FOLLOW;
+					}
+					if ( archers.states [ index ] != ArcherState::DEAD )
+					{
+						healers.states [ index ] = HealerState::FOLLOW;
+					}
+					if ( archers.states [ index ] != ArcherState::DEAD )
+					{
+						tanks.states [ index ] = TankState::FOLLOW;
+					}
+					if ( archers.states [ index ] != ArcherState::DEAD )
+					{
+						leaders.states [ index ] = LeaderState::SEARCH_TREASURE;
+					}
+				}
+				else if ( ( monsters.positions [ leaders.targets [ index ] ] - leaders.positions [ index ] ).LengthSquared ( ) <= total_radius_squared )
+				{
+					if ( leaders.time_until_next_attacks [ index ] <= 0 )
+					{
+						monsters.GetDamage ( leaders.targets [ index ], leaders.default_damage );
+						leaders.time_until_next_attacks [ index ] = leaders.default_time_until_next_attack;
+					}
+				}
+				else
+				{
+					const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( leaders.positions [ index ], monsters.positions [ leaders.targets [ index ] ] );
+					leaders.directions [ index ] = ( next_destination - leaders.positions [ index ] ).Normalized ( );
+				}
+				break;
+			}
+		}
 	}
+
+	for ( std::size_t index = 0, size = tanks.positions.size ( ); index < size; ++index )
+	{
+		tanks.directions [ index ] = Vector3 { };
+
+		switch ( tanks.states [ index ] )
+		{
+			case TankState::FOLLOW:
+			{
+				const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( tanks.positions [ index ], leaders.positions.front ( ) );
+				tanks.directions [ index ] = ( next_destination - tanks.positions [ index ] ).Normalized ( );
+				break;
+			}
+			case TankState::ATTACK:
+			{
+				tanks.time_until_next_attacks [ index ] -= dt;
+
+				const float total_radius = monsters.radiuses [ leaders.targets [ index ] ] + tanks.radiuses [ index ];
+				const float total_radius_squared = total_radius * total_radius;
+
+				if ( monsters.states [ leaders.targets.front ( ) ] != MonsterState::DEAD )
+				{
+					if ( ( monsters.positions [ leaders.targets.front ( ) ] - tanks.positions [ index ] ).LengthSquared ( ) <= total_radius_squared )
+					{
+						if ( tanks.time_until_next_attacks [ index ] <= 0 )
+						{
+							monsters.GetDamage ( leaders.targets.front ( ), tanks.default_damage );
+							tanks.time_until_next_attacks [ index ] = tanks.default_time_until_next_attack;
+						}
+					}
+					else
+					{
+						const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( tanks.positions [ index ], monsters.positions [ leaders.targets.front ( ) ] );
+						tanks.directions [ index ] = ( next_destination - tanks.positions [ index ] ).Normalized ( );
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	collision_system.CheckCollision ( archers.positions, archers.radiuses, monsters.positions, monsters.aggro_radius_squareds,
+	[ this ] ( const std::size_t archer_index, const std::size_t monster_index, const float distance_squared )
+	{
+		if ( monsters.states [ monster_index ] != MonsterState::DEAD )
+		{
+			bool new_target_is_closer = false;
+			if ( monsters.states [ monster_index ] == MonsterState::ATTACK )
+			{
+				if ( distance_squared <= ( monsters.GetTargetPosition [ monster_index ] ( ) - monsters.positions [ monster_index ] ).LengthSquared ( ) )
+				{
+					new_target_is_closer = true;
+				}
+			}
+			if ( ( monsters.states [ monster_index ] == MonsterState::WAIT || new_target_is_closer ) && archers.states [ archer_index ] != ArcherState::DEAD )
+			{
+				monsters.states [ monster_index ] = MonsterState::ATTACK;
+				monsters.TargetIsDead [ monster_index ] = [ = ]
+				{
+					return archers.states [ archer_index ] == ArcherState::DEAD;
+				};
+				monsters.TargetInRange [ monster_index ] = [ = ]
+				{
+					const float total_radius = monsters.radiuses [ monster_index ] + archers.radiuses [ archer_index ];
+					const float total_radius_squared = total_radius * total_radius;
+					return ( monsters.positions [ monster_index ] - archers.positions [ archer_index ] ).LengthSquared ( ) <= total_radius_squared;
+				};
+				monsters.GetTargetPosition [ monster_index ] = [ = ]
+				{
+					return archers.positions [ archer_index ];
+				};
+				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
+				{
+					archers.healths [ archer_index ] -= damage;
+					if ( archers.healths [ archer_index ] <= 0 )
+					{
+						archers.states [ archer_index ] = ArcherState::DEAD;
+					}
+				};
+			}
+			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
+			{
+				leaders.targets.front ( ) = monster_index;
+				leaders.states.front ( ) = LeaderState::ATTACK;
+				archers.states.front ( ) = ArcherState::ATTACK;
+				tanks.states.front ( ) = TankState::ATTACK;
+				healers.states.front ( ) = HealerState::CLOAK;
+			}
+		}
+	}
+	);
+
+	collision_system.CheckCollision ( leaders.positions, leaders.radiuses, monsters.positions, monsters.aggro_radius_squareds,
+	[ this ] ( const std::size_t leader_index, const std::size_t monster_index, const float distance_squared )
+	{
+		if ( monsters.states [ monster_index ] != MonsterState::DEAD )
+		{
+			bool new_target_is_closer = false;
+			if ( monsters.states [ monster_index ] == MonsterState::ATTACK )
+			{
+				if ( distance_squared <= ( monsters.GetTargetPosition [ monster_index ] ( ) - monsters.positions [ monster_index ] ).LengthSquared ( ) )
+				{
+					new_target_is_closer = true;
+				}
+			}
+			if ( ( monsters.states [ monster_index ] == MonsterState::WAIT || new_target_is_closer ) && leaders.states [ leader_index ] != LeaderState::DEAD )
+			{
+				monsters.states [ monster_index ] = MonsterState::ATTACK;
+				monsters.TargetIsDead [ monster_index ] = [ = ]
+				{
+					return leaders.states [ leader_index ] == LeaderState::DEAD;
+				};
+				monsters.TargetInRange [ monster_index ] = [ = ]
+				{
+					const float total_radius = monsters.radiuses [ monster_index ] + leaders.radiuses [ leader_index ];
+					const float total_radius_squared = total_radius * total_radius;
+					return ( monsters.positions [ monster_index ] - leaders.positions [ leader_index ] ).LengthSquared ( ) <= total_radius_squared;
+				};
+				monsters.GetTargetPosition [ monster_index ] = [ = ]
+				{
+					return leaders.positions [ leader_index ];
+				};
+				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
+				{
+					leaders.healths [ leader_index ] -= damage;
+					if ( leaders.healths [ leader_index ] <= 0 )
+					{
+						leaders.states [ leader_index ] = LeaderState::DEAD;
+					}
+				};
+			}
+			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
+			{
+				leaders.targets.front ( ) = monster_index;
+				leaders.states.front ( ) = LeaderState::ATTACK;
+				archers.states.front ( ) = ArcherState::ATTACK;
+				tanks.states.front ( ) = TankState::ATTACK;
+				healers.states.front ( ) = HealerState::CLOAK;
+			}
+		}
+	}
+	);
+
+	collision_system.CheckCollision ( healers.positions, healers.radiuses, monsters.positions, monsters.aggro_radius_squareds,
+	[ this ] ( const std::size_t healer_index, const std::size_t monster_index, const float distance_squared )
+	{
+		if ( monsters.states [ monster_index ] != MonsterState::DEAD )
+		{
+			bool new_target_is_closer = false;
+			if ( monsters.states [ monster_index ] == MonsterState::ATTACK )
+			{
+				if ( distance_squared <= ( monsters.GetTargetPosition [ monster_index ] ( ) - monsters.positions [ monster_index ] ).LengthSquared ( ) )
+				{
+					new_target_is_closer = true;
+				}
+			}
+			if ( (monsters.states [ monster_index ] == MonsterState::WAIT || new_target_is_closer) && healers.states[ healer_index] != HealerState::DEAD )
+			{
+				monsters.states [ monster_index ] = MonsterState::ATTACK;
+				monsters.TargetIsDead [ monster_index ] = [ = ]
+				{
+					return healers.states [ healer_index ] == HealerState::DEAD;
+				};
+				monsters.TargetInRange [ monster_index ] = [ = ]
+				{
+					const float total_radius = monsters.radiuses [ monster_index ] + healers.radiuses [ healer_index ];
+					const float total_radius_squared = total_radius * total_radius;
+					return ( monsters.positions [ monster_index ] - healers.positions [ healer_index ] ).LengthSquared ( ) <= total_radius_squared;
+				};
+				monsters.GetTargetPosition [ monster_index ] = [ = ]
+				{
+					return healers.positions [ healer_index ];
+				};
+				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
+				{
+					healers.healths [ healer_index ] -= damage;
+					if ( healers.healths [ healer_index ] <= 0 )
+					{
+						healers.states [ healer_index ] = HealerState::DEAD;
+					}
+				};
+			}
+			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
+			{
+				leaders.targets.front ( ) = monster_index;
+				leaders.states.front ( ) = LeaderState::ATTACK;
+				archers.states.front ( ) = ArcherState::ATTACK;
+				tanks.states.front ( ) = TankState::ATTACK;
+				healers.states.front ( ) = HealerState::CLOAK;
+			}
+		}
+	}
+	);
+
+	collision_system.CheckCollision ( tanks.positions, tanks.radiuses, monsters.positions, monsters.aggro_radius_squareds,
+	[ this ] ( const std::size_t tank_index, const std::size_t monster_index, const float distance_squared )
+	{
+		if ( monsters.states [ monster_index ] != MonsterState::DEAD )
+		{
+			bool new_target_is_closer = false;
+			if ( monsters.states [ monster_index ] == MonsterState::ATTACK )
+			{
+				if ( distance_squared <= ( monsters.GetTargetPosition [ monster_index ] ( ) - monsters.positions [ monster_index ] ).LengthSquared ( ) )
+				{
+					new_target_is_closer = true;
+				}
+			}
+			if ( monsters.states [ monster_index ] == MonsterState::WAIT || new_target_is_closer )
+			{
+				monsters.states [ monster_index ] = MonsterState::ATTACK;
+				monsters.TargetIsDead [ monster_index ] = [ = ]
+				{
+					return tanks.states [ tank_index ] == TankState::DEAD;
+				};
+				monsters.TargetInRange [ monster_index ] = [ = ]
+				{
+					const float total_radius = monsters.radiuses [ monster_index ] + tanks.radiuses [ tank_index ];
+					const float total_radius_squared = total_radius * total_radius;
+					return ( monsters.positions [ monster_index ] - tanks.positions [ tank_index ] ).LengthSquared ( ) <= total_radius_squared;
+				};
+				monsters.GetTargetPosition [ monster_index ] = [ = ]
+				{
+					return tanks.positions [ tank_index ];
+				};
+				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
+				{
+					tanks.healths [ tank_index ] -= damage;
+					if ( tanks.healths [ tank_index ] <= 0 )
+					{
+						tanks.states [ tank_index ] = TankState::DEAD;
+					}
+				};
+			}
+			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
+			{
+				leaders.targets.front ( ) = monster_index;
+				leaders.states.front ( ) = LeaderState::ATTACK;
+				archers.states.front ( ) = ArcherState::ATTACK;
+				tanks.states.front ( ) = TankState::ATTACK;
+				healers.states.front ( ) = HealerState::CLOAK;
+			}
+		}
+	}
+	);
+
+	collision_system.CheckCollision ( arrows.positions, arrows.radiuses, monsters.positions, monsters.radiuses,
+	[ this ] ( const std::size_t arrow_index, const std::size_t monster_index, const float distance_squared )
+	{
+		if ( monsters.states [ monster_index ] != MonsterState::DEAD )
+		{
+			arrows.deads [ arrow_index ] = true;
+			monsters.GetDamage ( monster_index, arrows.default_damage );
+		}
+	}
+	);
+
+	collision_system.CheckCollision ( leaders.positions, leaders.radiuses, treasure, leaders.radiuses,
+	[ this ] ( const std::size_t leader_index, const std::size_t treasure_index, const float distance_squared )
+	{
+		RandomiseTreasureLocation ( );
+	}
+	);
 }
 
 void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
@@ -599,7 +915,7 @@ void SceneKinematics::Render()
 			const Vector3 position = arrows.positions [ index ];
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
-			modelStack.Scale ( 9, 9, 1 );
+			modelStack.Scale ( 2, 2, 1 );
 			RenderMesh ( meshList [ GEO_ARROW ], false );
 			modelStack.PopMatrix ( );
 		}
@@ -653,6 +969,19 @@ void SceneKinematics::Render()
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
 			RenderMesh ( meshList [ GEO_HEALER ], false );
+			modelStack.PopMatrix ( );
+		}
+	}
+
+	for ( std::size_t index = 0, size = tanks.positions.size ( ); index < size; ++index )
+	{
+		if ( tanks.states [ index ] != TankState::DEAD )
+		{
+			const Vector3 position = tanks.positions [ index ];
+			modelStack.PushMatrix ( );
+			modelStack.Translate ( position.x, position.y, position.z );
+			modelStack.Scale ( 9, 9, 1 );
+			RenderMesh ( meshList [ GEO_WORKER ], false );
 			modelStack.PopMatrix ( );
 		}
 	}

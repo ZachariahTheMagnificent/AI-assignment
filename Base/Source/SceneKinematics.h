@@ -83,7 +83,7 @@ private:
 
 		monsters.Clear ( );
 
-		for ( std::size_t index = 0; index < 2; ++index )
+		for ( std::size_t index = 0; index < 3; ++index )
 		{
 			monsters.Create ( Vector3 { rng.RandFloat ( 0, m_worldWidth ), rng.RandFloat ( 0, m_worldHeight ), 0 } );
 		}
@@ -138,6 +138,7 @@ private:
 	Healers healers;
 	Arrows arrows;
 	Monsters monsters;
+	Tanks tanks;
 
 };
 
