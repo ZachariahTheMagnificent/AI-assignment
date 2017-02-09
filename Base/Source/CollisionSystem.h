@@ -77,14 +77,17 @@ public:
 
 struct PathNodeTravelInfo final
 {
-	void ConnectTo ( const std::vector<PathNodeTravelInfo>::const_iterator travel_info_it, const float new_distance_travelled_squared, const float new_total_travel_cost )
+	void ConnectTo ( const std::size_t travel_info_index, const float new_distance_travelled_squared, const float new_total_travel_cost )
 	{
-		calculated = true;
-		if ( new_total_travel_cost <= total_travel_cost )
+		if ( !calculated )
 		{
-			distance_travelled_squared = new_distance_travelled_squared;
-			total_travel_cost = new_total_travel_cost;
-			previous_travel_info_it = travel_info_it;
+			calculated = true;
+			if ( new_total_travel_cost <= total_travel_cost )
+			{
+				distance_travelled_squared = new_distance_travelled_squared;
+				total_travel_cost = new_total_travel_cost;
+				previous_travel_info_index = travel_info_index;
+			}
 		}
 	}
 
@@ -92,7 +95,8 @@ struct PathNodeTravelInfo final
 	float distance_to_goal_squared { FLT_MAX };
 	float total_travel_cost { FLT_MAX };
 	bool calculated { false };
-	std::vector<PathNodeTravelInfo>::const_iterator previous_travel_info_it;
+	bool connected_to_start { false };
+	std::size_t previous_travel_info_index;
 };
 
 class PathNode final
@@ -100,16 +104,16 @@ class PathNode final
 public:
 	PathNode ( ) = default;
 
-	void AddNeighbour ( std::vector<PathNodeTravelInfo>::iterator travel_info, const Vector3 position )
+	void AddNeighbour ( std::size_t travel_info_index, const Vector3 position )
 	{
 		neighbour_positions_.push_back ( position );
-		neighbour_travel_info_.push_back ( travel_info );
+		neighbour_travel_info_.push_back ( travel_info_index );
 		new_distance_travelled_squared_cache_.push_back ( float { } );
 	}
 
-	void CalculateNeighbours ( std::vector<std::size_t>& calculated_unvisited_nodes_indices, const std::vector<PathNodeTravelInfo>::const_iterator travel_info_begin, const std::vector<PathNodeTravelInfo>::const_iterator self_travel_info, const Vector3 position ) const
+	void CalculateNeighbours ( std::vector<std::size_t>& calculated_unvisited_nodes_indices, std::vector<PathNodeTravelInfo>& travel_info, const std::size_t self_travel_info_index, const Vector3 position ) const
 	{
-		const float distance_travelled_squared = self_travel_info->distance_travelled_squared;
+		const float distance_travelled_squared = travel_info[self_travel_info_index].distance_travelled_squared;
 		const std::size_t size = neighbour_positions_.size ( );
 
 		for ( std::size_t index = 0; index < size; ++index )
@@ -119,23 +123,23 @@ public:
 
 		for ( std::size_t index = 0; index < size; ++index )
 		{
-			const auto travel_info_it = neighbour_travel_info_ [ index ];
+			const std::size_t travel_info_index = neighbour_travel_info_ [ index ];
 
 			const float new_distance_travelled_squared = new_distance_travelled_squared_cache_ [ index ];
-			const float new_total_travel_cost = new_distance_travelled_squared + travel_info_it->distance_to_goal_squared;
+			const float new_total_travel_cost = new_distance_travelled_squared + travel_info [ travel_info_index ].distance_to_goal_squared;
 
-			if ( !travel_info_it->calculated )
+			if ( !travel_info [ travel_info_index ].calculated )
 			{
-				calculated_unvisited_nodes_indices.push_back ( travel_info_it - travel_info_begin );
+				calculated_unvisited_nodes_indices.push_back ( travel_info_index );
 			}
 
-			travel_info_it->ConnectTo ( self_travel_info, new_distance_travelled_squared, new_total_travel_cost );
+			travel_info [ travel_info_index ].ConnectTo ( self_travel_info_index, new_distance_travelled_squared, new_total_travel_cost );
 		}
 	}
 
 private:
 	std::vector<Vector3> neighbour_positions_;
-	std::vector<std::vector<PathNodeTravelInfo>::iterator> neighbour_travel_info_;
+	std::vector<std::size_t> neighbour_travel_info_;
 
 	mutable std::vector<float> new_distance_travelled_squared_cache_;
 };
@@ -173,8 +177,8 @@ public:
 
 				if ( Connected ( node_position1, node_position2 ) )
 				{
-					path_nodes_ [ index1 ].AddNeighbour ( travel_info_begin + index1, node_position1 );
-					path_nodes_ [ index2 ].AddNeighbour ( travel_info_begin + index2, node_position2 );
+					path_nodes_ [ index1 ].AddNeighbour ( index2, node_position2 );
+					path_nodes_ [ index2 ].AddNeighbour ( index1, node_position1 );
 				}
 			}
 		}
@@ -211,6 +215,8 @@ public:
 			if ( Connected ( starting_position, node_position ) )
 			{
 				const Vector3 start_to_node = node_position - starting_position;
+				travel_info.calculated = true;
+				travel_info.connected_to_start = true;
 				travel_info.distance_travelled_squared = start_to_node.LengthSquared ( );
 				travel_info.total_travel_cost = travel_info.distance_travelled_squared + travel_info.distance_to_goal_squared;
 				calculated_unvisited_nodes_index_cache_.push_back ( index );
@@ -246,19 +252,19 @@ public:
 			{
 				//backtrack to find next node
 				std::vector<PathNodeTravelInfo>::const_iterator current = travel_info_begin + index_of_node_to_process;
-				while ( current->calculated )
+				while ( !current->connected_to_start )
 				{
-					current = current->previous_travel_info_it;
+					current = travel_info_begin + current->previous_travel_info_index;
 				}
 
 				const std::size_t index = current - travel_info_begin;
 				return node_positions_ [ index ];
 			}
 			
-			path_nodes_ [ index_of_node_to_process ].CalculateNeighbours ( calculated_unvisited_nodes_index_cache_, travel_info_begin, travel_info_begin + index_of_node_to_process, position );
+			path_nodes_ [ index_of_node_to_process ].CalculateNeighbours ( calculated_unvisited_nodes_index_cache_, travel_info_cache_, index_of_node_to_process, position );
 		}
 
-		throw;
+		return Vector3 { };
 	}
 
 private:
@@ -368,7 +374,7 @@ struct Monsters final
 	const double default_time_until_next_attack { 1 };
 	const MonsterState default_state { MonsterState::WAIT };
 	const float default_health { 100 };
-	const float default_damage { 10 };
+	const float default_damage { 15 };
 
 	void Create ( const Vector3 position )
 	{
@@ -440,8 +446,7 @@ struct Healers final
 	const float default_speed { 50 };
 	const float default_radius { 7 };
 	const float default_health { 100 };
-	const float default_percentage_heal { 30 };
-	const double default_time_until_next_heal { 5 };
+	const float default_percentage_heal { 0.3 };
 	const double default_time_until_cloak { 3 };
 	const HealerState default_state { HealerState::FOLLOW };
 
@@ -452,13 +457,8 @@ struct Healers final
 		speeds.push_back ( default_speed );
 		radiuses.push_back ( default_radius );
 		healths.push_back ( default_health );
-		time_until_next_heals.push_back ( default_time_until_next_heal );
 		time_until_cloaks.push_back ( default_time_until_cloak );
 		states.push_back ( default_state );
-		HealTarget.push_back ( [ ] ( const float heal )
-		{
-		}
-		);
 	}
 
 	std::vector<Vector3> positions;
@@ -466,10 +466,8 @@ struct Healers final
 	std::vector<float> speeds;
 	std::vector<float> radiuses;
 	std::vector<float> healths;
-	std::vector<double> time_until_next_heals;
 	std::vector<double> time_until_cloaks;
 	std::vector<HealerState> states;
-	std::vector<std::function<void ( const float heal )>> HealTarget;
 };
 
 struct Archers final
@@ -479,6 +477,7 @@ struct Archers final
 	const float default_health { 100 };
 	const double default_time_until_next_arrow { 1 };
 	const double default_time_until_speed_fire_end { 3 };
+	const double default_time_until_can_speed_fire { 10 };
 	const ArcherState default_state { ArcherState::FOLLOW };
 
 	void Create ( const Vector3 position )
@@ -490,6 +489,7 @@ struct Archers final
 		healths.push_back ( default_health );
 		time_until_next_arrows.push_back ( default_time_until_next_arrow );
 		time_until_speed_fire_ends.push_back ( default_time_until_speed_fire_end );
+		time_until_can_speed_fire.push_back ( default_time_until_can_speed_fire );
 		states.push_back ( default_state );
 	}
 
@@ -500,6 +500,7 @@ struct Archers final
 	std::vector<float> healths;
 	std::vector<double> time_until_next_arrows;
 	std::vector<double> time_until_speed_fire_ends;
+	std::vector<double> time_until_can_speed_fire;
 	std::vector<ArcherState> states;
 };
 
@@ -510,6 +511,8 @@ struct Tanks final
 	const float default_damage { 40 };
 	const float default_health { 500 };
 	const double default_time_until_next_attack { 1 };
+	const double default_time_until_taunt_ends { 3 };
+	const double default_time_until_can_taunt { 5 };
 	const TankState default_state { TankState::FOLLOW };
 
 	void Create ( const Vector3 position )
@@ -520,6 +523,8 @@ struct Tanks final
 		radiuses.push_back ( default_radius );
 		healths.push_back ( default_health );
 		time_until_next_attacks.push_back ( default_time_until_next_attack );
+		time_until_taunt_ends.push_back ( default_time_until_taunt_ends );
+		time_until_can_taunts.push_back ( default_time_until_can_taunt );
 		states.push_back ( default_state );
 	}
 
@@ -529,6 +534,8 @@ struct Tanks final
 	std::vector<float> radiuses;
 	std::vector<float> healths;
 	std::vector<double> time_until_next_attacks;
+	std::vector<double> time_until_taunt_ends;
+	std::vector<double> time_until_can_taunts;
 	std::vector<TankState> states;
 };
 
@@ -561,4 +568,64 @@ struct Leaders final
 	std::vector<double> time_until_next_attacks;
 	std::vector<LeaderState> states;
 	std::vector<std::size_t> targets;
+};
+
+struct Dmg_Indicator
+{
+	static const float speed;
+	static const float timeUntilDeath_indicator;
+	static const Vector3 vel_Y;
+
+	bool isDead ( )
+	{
+		if ( time_indicator <= 0 )
+		{
+			return true;
+		}
+		else
+			return false;
+	}
+	void Update ( double dt )
+	{
+		if ( !isDead ( ) )
+		{
+			time_indicator -= dt;
+			position += vel_Y *dt;
+		}
+		
+	}
+
+	float time_indicator {timeUntilDeath_indicator};
+	
+	Vector3 position;
+	float dmg;
+};
+struct Message_Indicator
+{
+	static const float speed;
+	static const float timeUntilDeath_indicator;
+	static const Vector3 vel_Y;
+	float time_indicator {timeUntilDeath_indicator};
+
+
+	bool isDead ( )
+	{
+		if ( time_indicator <= 0 )
+		{
+			return true;
+		}
+		else
+			return false;
+	}
+	void Update ( double dt )
+	{
+		if ( !isDead ( ) )
+		{
+			time_indicator -= dt;
+			position += vel_Y *dt;
+		}
+
+	}
+	Vector3 position;
+	std::string msg;
 };

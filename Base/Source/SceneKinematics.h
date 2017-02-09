@@ -11,6 +11,7 @@
 #include "Random.h"
 #include "CollisionSystem.h"
 #include <vector>
+#include <fstream>
 
 class SceneKinematics : public Scene
 {
@@ -56,6 +57,7 @@ class SceneKinematics : public Scene
 		GEO_WORKER,
 		GEO_RABBIT,
 		GEO_DEAD_RABBIT,
+		GEO_BOUNDARIES,
 		GEO_MONSTER,
 		GEO_LEADER,
 		GEO_HEALER,
@@ -72,11 +74,59 @@ public:
 	virtual void Exit();
 
 	void RenderText(Mesh* mesh, std::string text, Color color);
-	void RenderTextOnScreen(Mesh* mesh, std::string text, Color color, float size, float x, float y);
+	void RenderTextOnScreen(Mesh* mesh, std::string text, Color color, float size, float x, float y, const bool middle = false);
 	void RenderMesh(Mesh *mesh, bool enableLight);
 	void RenderGO(GameObject *go);
 
 private:
+	std::vector<Line> CreateBoundaries ( const std::string file_path)
+	{
+		std::vector<Line> line_buffer;
+		std::ifstream fileStream ( file_path );
+		if ( !fileStream.is_open ( ) )
+		{
+			std::cout << "Impossible to open " << file_path << ". Are you in the right directory ?\n";
+			return line_buffer;
+		}
+
+		std::vector<Vector3> vertices;
+		std::vector<std::size_t> vertex_indices;
+
+		while ( !fileStream.eof ( ) )
+		{
+			char buf [ 512 ];
+			fileStream.getline ( buf, 256 );
+			if ( strncmp ( "v ", buf, 2 ) == 0 )
+			{
+				Vector3 vertex;
+				sscanf_s ( ( buf + 2 ), "%f%f%f", &vertex.x, &vertex.y, &vertex.z );
+				vertices.push_back ( vertex );
+			}
+			else if ( strncmp ( "l ", buf, 2 ) == 0 )
+			{
+				std::size_t start;
+				std::size_t end;
+				sscanf_s ( ( buf + 2 ), "%d%d", &start, &end );
+				vertex_indices.push_back ( start );
+				vertex_indices.push_back ( end );
+			}
+		}
+		fileStream.close ( );
+
+		for ( std::size_t index = 0, size = vertex_indices.size ( ); index < size; index += 2 )
+		{
+			const std::size_t i_start = vertex_indices [ index ] - 1;
+			const std::size_t i_end = vertex_indices [ index + 1 ] - 1;
+
+			line_buffer.push_back ( CreateLine ( vertices [ i_start ], vertices [ i_end ] ) );
+		}
+		return line_buffer;
+	}
+
+	Line CreateLine ( const Vector3 start, const Vector3 end )
+	{
+		return Line { start, end - start };
+	}
 	void RandomiseTreasureLocation ( )
 	{
 		treasure.front ( ) = Vector3 { rng.RandFloat ( 0, m_worldWidth ), rng.RandFloat ( 0, m_worldHeight ), 0 };
@@ -88,7 +138,39 @@ private:
 			monsters.Create ( Vector3 { rng.RandFloat ( 0, m_worldWidth ), rng.RandFloat ( 0, m_worldHeight ), 0 } );
 		}
 	}
+	void Create_dmgIndicator (Vector3 initPos, float dmg )
+	{
+		Dmg_Indicator dmgindicate;
+		dmgindicate.position = initPos;
+		dmgindicate.dmg = dmg;
 
+		for (std::size_t index = 0, size = dmg_indicators.size ( ); index < size; ++index ) 
+		{
+			if ( dmg_indicators [ index ].isDead ( ))
+			{
+				dmg_indicators [ index ] = dmgindicate;
+				return;
+			}
+		}
+		
+		dmg_indicators.push_back ( dmgindicate );
+	}
+	void Create_msgIndicator (std:: string msg )
+	{
+		Message_Indicator msgindicate;
+		msgindicate.msg = msg;
+
+		for ( std::size_t index = 0, size = message_indicators.size ( ); index < size; ++index )
+		{
+			if ( message_indicators [ index ].isDead ( ) )
+			{
+				message_indicators [ index ] = msgindicate;
+				return;
+			}
+		}
+
+		message_indicators.push_back ( msgindicate );
+	}
 	unsigned m_vertexArrayID;
 	Mesh* meshList[NUM_GEOMETRY];
 	unsigned m_programID;
@@ -139,6 +221,9 @@ private:
 	Arrows arrows;
 	Monsters monsters;
 	Tanks tanks;
+
+	std::vector<Dmg_Indicator> dmg_indicators;
+	std::vector<Message_Indicator> message_indicators;
 
 };
 

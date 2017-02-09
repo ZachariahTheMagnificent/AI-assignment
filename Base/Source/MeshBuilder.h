@@ -1,5 +1,7 @@
 #ifndef MESH_BUILDER_H
 #define MESH_BUILDER_H
+#include "CheckIfVectorsCollide.h"
+#include <vector>
 
 #include "Mesh.h"
 #include "Vertex.h"
@@ -13,6 +15,7 @@
 class MeshBuilder
 {
 public:
+	static Mesh* GenerateLines ( const std::string &meshName, const Color color, const std::vector<Line>& lines );
 	static Mesh* GenerateAxes(const std::string &meshName, float lengthX, float lengthY, float lengthZ);
 	static Mesh* GenerateQuad(const std::string &meshName, Color color, float length = 1.f);
 	static Mesh* GenerateCube(const std::string &meshName, Color color, float length = 1.f);

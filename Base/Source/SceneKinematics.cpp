@@ -155,14 +155,22 @@ void SceneKinematics::Init ( )
 	healers.Create ( Vector3 ( 50, 50, 0 ) );
 	tanks.Create ( Vector3 ( 25, 50, 0 ) );
 
+	std::vector<Line> line_boundaries = CreateBoundaries ( "map.obj" );
+
 	std::vector<Vector3> node_positions;
-	node_positions.push_back ( Vector3 { 200, 300, 0 } );
-	node_positions.push_back ( Vector3 { 200, 10, 0 } );
+	node_positions.resize ( line_boundaries.size ( ) * 2 );
+	for ( std::size_t index = 0, size = line_boundaries.size ( ); index < size; ++index )
+	{
+		const float spacing = 25;
+		const float length = line_boundaries [ index ].vector.Length ( );
+		const Vector3 direction = line_boundaries [ index ].vector * (1.f/length);
+		node_positions [ index * 2 ] = line_boundaries [ index ].orgin - direction * spacing;
+		node_positions [ index * 2 + 1 ] = line_boundaries [ index ].orgin + line_boundaries [ index ].vector + direction * spacing;
+	}
 
-	std::vector<Line> line_boundaries;
-	line_boundaries.push_back ( Line { Vector3 { 200, 70, 0 }, Vector3 { 0, -40, 0 } } );
+	meshList [ GEO_BOUNDARIES ] = MeshBuilder::GenerateLines ( "boundaries", Color ( 1, 1, 1 ), line_boundaries );
 
-	//path_finding_system.Build ( node_positions, line_boundaries );
+	path_finding_system.Build ( node_positions, line_boundaries );
 
 	treasure.resize ( 1 );
 
@@ -189,9 +197,10 @@ void SceneKinematics::Update ( double dt )
 	{
 		//Exercise 6: adjust simulation speed
 	}
-	if ( Application::IsKeyPressed ( 'c' ) )
+	if ( Application::IsKeyPressed ( 'C' ) )
 	{
 		//Exercise 9: clear screen
+		
 	}
 	if ( Application::IsKeyPressed ( ' ' ) )
 	{
@@ -271,7 +280,14 @@ void SceneKinematics::Update ( double dt )
 			//Exercise 5: unspawn ball when outside window
 		}
 	}
-
+	for ( std::size_t index = 0, size = dmg_indicators.size ( ); index < size; ++index )
+	{
+		dmg_indicators [ index ].Update ( dt );
+	}
+	for ( std::size_t index = 0, size = message_indicators.size ( ); index < size; ++index )
+	{
+		message_indicators [ index ].Update ( dt );
+	}
 	physics_system.Update ( arrows.positions, arrows.directions, arrows.speeds, dt );
 	physics_system.Update ( monsters.positions, monsters.directions, monsters.speeds, dt );
 	physics_system.Update ( archers.positions, archers.directions, archers.speeds, dt );
@@ -304,6 +320,10 @@ void SceneKinematics::Update ( double dt )
 				{
 					if ( monsters.time_until_next_attacks [ index ] <= 0 )
 					{
+						const Vector3 position = monsters.positions [ index ];
+
+						Create_dmgIndicator (position+(0,9,0), monsters.default_damage );
+
 						monsters.DamageTarget [ index ] ( monsters.default_damage );
 
 						monsters.time_until_next_attacks [ index ] = monsters.default_time_until_next_attack;
@@ -321,6 +341,24 @@ void SceneKinematics::Update ( double dt )
 	for ( std::size_t index = 0, size = archers.positions.size ( ); index < size; ++index )
 	{
 		archers.directions [ index ] = Vector3 { };
+
+		archers.time_until_can_speed_fire [ index ] -= dt;
+		if ( archers.time_until_can_speed_fire [ index ] <= 0 )
+		{
+			archers.time_until_can_speed_fire [ index ] = 0;
+		}
+
+		if ( archers.healths [ index ] / archers.default_health <= 0.4 && archers.states[index] != ArcherState::DEAD )
+		{
+			if ( healers.states.front() != HealerState::DEAD && healers.time_until_cloaks.front() <= 0 )
+			{
+				Create_msgIndicator ("I need healing");
+
+				healers.states.front ( ) = HealerState::HEAL;
+				healers.time_until_cloaks.front() = healers.default_time_until_cloak;
+				archers.healths [ index ] += archers.default_health * healers.default_percentage_heal;
+			}
+		}
 
 		switch ( archers.states [ index ] )
 		{
@@ -345,6 +383,12 @@ void SceneKinematics::Update ( double dt )
 			}
 			case ArcherState::SPEED_FIRE:
 			{
+				archers.time_until_speed_fire_ends [ index ] -= dt;
+				if ( archers.time_until_speed_fire_ends [ index ] <= 0 )
+				{
+					archers.states [ index ] = ArcherState::ATTACK;
+				}
+
 				monsters.directions [ index ] = Vector3 { };
 				if ( monsters.states [ leaders.targets.front ( ) ] != MonsterState::DEAD )
 				{
@@ -358,6 +402,12 @@ void SceneKinematics::Update ( double dt )
 	for ( std::size_t index = 0, size = healers.positions.size ( ); index < size; ++index )
 	{
 		healers.directions [ index ] = Vector3 { };
+
+		healers.time_until_cloaks [ index ] -= dt;
+		if ( healers.time_until_cloaks [ index ] <= 0 )
+		{
+			healers.time_until_cloaks [ index ] = 0;
+		}
 
 		switch ( healers.states [ index ] )
 		{
@@ -376,6 +426,10 @@ void SceneKinematics::Update ( double dt )
 			}
 			case HealerState::HEAL:
 			{
+				if ( healers.time_until_cloaks [ index ] < 0 )
+				{
+					healers.states [ index ] = HealerState::CLOAK;
+				}
 				break;
 			}
 		}
@@ -384,6 +438,18 @@ void SceneKinematics::Update ( double dt )
 	for ( std::size_t index = 0, size = leaders.positions.size ( ); index < size; ++index )
 	{
 		leaders.directions [ index ] = Vector3 { };
+
+		if ( leaders.healths [ index ] / leaders.default_health <= 0.4 && leaders.states [ index ] != LeaderState::DEAD )
+		{
+			if ( healers.states.front ( ) != HealerState::DEAD && healers.time_until_cloaks.front ( ) <= 0 )
+			{
+				Create_msgIndicator ("Mediicccccc!");
+
+				healers.states.front ( ) = HealerState::HEAL;
+				healers.time_until_cloaks.front ( ) = healers.default_time_until_cloak;
+				leaders.healths [ index ] += leaders.default_health * healers.default_percentage_heal;
+			}
+		}
 
 		switch ( leaders.states [ index ] )
 		{
@@ -395,6 +461,29 @@ void SceneKinematics::Update ( double dt )
 			}
 			case LeaderState::ATTACK:
 			{
+				if ( leaders.healths [ index ] / leaders.default_health <= 0.5 && leaders.states [ index ] != LeaderState::DEAD )
+				{
+					if ( archers.states.front ( ) != ArcherState::DEAD && archers.time_until_can_speed_fire.front ( ) <= 0 )
+					{
+						Create_msgIndicator ( "HALP ME ARCHER!" );
+
+						archers.states.front ( ) = ArcherState::SPEED_FIRE;
+						archers.time_until_speed_fire_ends.front ( ) = archers.default_time_until_speed_fire_end;
+						archers.time_until_can_speed_fire.front ( ) = archers.default_time_until_can_speed_fire;
+					}
+				}
+				if ( leaders.healths [ index ] / leaders.default_health <= 0.75 && leaders.states [ index ] != LeaderState::DEAD )
+				{
+					if ( tanks.states.front ( ) != TankState::DEAD && tanks.time_until_can_taunts.front ( ) <= 0 )
+					{
+						Create_msgIndicator ( "I am under attack!" );
+
+						tanks.states.front ( ) = TankState::TAUNT;
+						tanks.time_until_can_taunts.front ( ) = tanks.default_time_until_can_taunt;
+						tanks.time_until_taunt_ends.front ( ) = tanks.default_time_until_taunt_ends;
+					}
+				}
+
 				leaders.time_until_next_attacks [ index ] -= dt;
 
 				const float total_radius = monsters.radiuses [ leaders.targets [ index ] ] + leaders.radiuses [ index ];
@@ -423,6 +512,10 @@ void SceneKinematics::Update ( double dt )
 				{
 					if ( leaders.time_until_next_attacks [ index ] <= 0 )
 					{
+						const Vector3 position = leaders.positions [ index ];
+
+						Create_dmgIndicator ( position + ( 0, 9, 0 ), leaders.default_damage );
+
 						monsters.GetDamage ( leaders.targets [ index ], leaders.default_damage );
 						leaders.time_until_next_attacks [ index ] = leaders.default_time_until_next_attack;
 					}
@@ -440,40 +533,66 @@ void SceneKinematics::Update ( double dt )
 	for ( std::size_t index = 0, size = tanks.positions.size ( ); index < size; ++index )
 	{
 		tanks.directions [ index ] = Vector3 { };
-
-		switch ( tanks.states [ index ] )
+		tanks.time_until_can_taunts[index] -= dt;
+		if ( tanks.time_until_can_taunts [ index ] <= 0 )
 		{
-			case TankState::FOLLOW:
+			tanks.time_until_can_taunts [ index ] = 0;
+		}
+
+		if ( tanks.healths [ index ] / tanks.default_health <= 0.4 && tanks.states [ index ] != TankState::DEAD )
+		{
+			if ( healers.states.front ( ) != HealerState::DEAD && healers.time_until_cloaks.front ( ) <= 0 )
 			{
-				const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( tanks.positions [ index ], leaders.positions.front ( ) );
-				tanks.directions [ index ] = ( next_destination - tanks.positions [ index ] ).Normalized ( );
-				break;
+				Create_msgIndicator ( "I can't hold forever!" );
+
+				healers.states.front ( ) = HealerState::HEAL;
+				healers.time_until_cloaks.front ( ) = healers.default_time_until_cloak;
+				tanks.healths [ index ] += tanks.default_health * healers.default_percentage_heal;
 			}
-			case TankState::ATTACK:
+		}
+
+		if ( tanks.states [ index ] == TankState::FOLLOW)
+		{
+			const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( tanks.positions [ index ], leaders.positions.front ( ) );
+			tanks.directions [ index ] = ( next_destination - tanks.positions [ index ] ).Normalized ( );
+			break;
+		}
+		else if ( tanks.states [ index ] != TankState::DEAD)
+		{
+			tanks.time_until_next_attacks [ index ] -= dt;
+
+			const float total_radius = monsters.radiuses [ leaders.targets [ index ] ] + tanks.radiuses [ index ];
+			const float total_radius_squared = total_radius * total_radius;
+
+			if ( monsters.states [ leaders.targets.front ( ) ] != MonsterState::DEAD )
 			{
-				tanks.time_until_next_attacks [ index ] -= dt;
-
-				const float total_radius = monsters.radiuses [ leaders.targets [ index ] ] + tanks.radiuses [ index ];
-				const float total_radius_squared = total_radius * total_radius;
-
-				if ( monsters.states [ leaders.targets.front ( ) ] != MonsterState::DEAD )
+				if ( ( monsters.positions [ leaders.targets.front ( ) ] - tanks.positions [ index ] ).LengthSquared ( ) <= total_radius_squared )
 				{
-					if ( ( monsters.positions [ leaders.targets.front ( ) ] - tanks.positions [ index ] ).LengthSquared ( ) <= total_radius_squared )
+					if ( tanks.time_until_next_attacks [ index ] <= 0 )
 					{
-						if ( tanks.time_until_next_attacks [ index ] <= 0 )
-						{
-							monsters.GetDamage ( leaders.targets.front ( ), tanks.default_damage );
-							tanks.time_until_next_attacks [ index ] = tanks.default_time_until_next_attack;
-						}
-					}
-					else
-					{
-						const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( tanks.positions [ index ], monsters.positions [ leaders.targets.front ( ) ] );
-						tanks.directions [ index ] = ( next_destination - tanks.positions [ index ] ).Normalized ( );
+						Vector3 position = tanks.positions [ index ];
+						Create_dmgIndicator ( position + ( 0, 9, 0 ), tanks.default_damage );
+
+						monsters.GetDamage ( leaders.targets.front ( ), tanks.default_damage );
+						tanks.time_until_next_attacks [ index ] = tanks.default_time_until_next_attack;
 					}
 				}
-				break;
+				else
+				{
+					const Vector3 next_destination = path_finding_system.FindNextNodePositionInShortestPath ( tanks.positions [ index ], monsters.positions [ leaders.targets.front ( ) ] );
+					tanks.directions [ index ] = ( next_destination - tanks.positions [ index ] ).Normalized ( );
+				}
 			}
+			break;
+		}
+		if ( tanks.states [ index ] == TankState::TAUNT)
+		{
+			tanks.time_until_taunt_ends [ index ] -= dt;
+			if ( tanks.time_until_taunt_ends [ index ] <= 0 )
+			{
+				tanks.states[ index ] = TankState::ATTACK;
+			}
+			break;
 		}
 	}
 
@@ -509,10 +628,21 @@ void SceneKinematics::Update ( double dt )
 				};
 				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
 				{
-					archers.healths [ archer_index ] -= damage;
-					if ( archers.healths [ archer_index ] <= 0 )
+					if ( tanks.states.front ( ) == TankState::TAUNT )
 					{
-						archers.states [ archer_index ] = ArcherState::DEAD;
+						tanks.healths.front() -= damage;
+						if ( tanks.healths.front() <= 0 )
+						{
+							tanks.states.front() = TankState::DEAD;
+						}
+					}
+					else
+					{
+						archers.healths [ archer_index ] -= damage;
+						if ( archers.healths [ archer_index ] <= 0 )
+						{
+							archers.states [ archer_index ] = ArcherState::DEAD;
+						}
 					}
 				};
 			}
@@ -523,15 +653,15 @@ void SceneKinematics::Update ( double dt )
 			{
 				leaders.states.front ( ) = LeaderState::ATTACK;
 			}
-			if ( archers.states.front ( ) != ArcherState::DEAD )
+			if ( archers.states.front ( ) == ArcherState::FOLLOW )
 			{
 				archers.states.front ( ) = ArcherState::ATTACK;
 			}
-			if ( tanks.states.front ( ) != TankState::DEAD )
+			if ( tanks.states.front ( ) == TankState::FOLLOW )
 			{
 				tanks.states.front ( ) = TankState::ATTACK;
 			}
-			if ( healers.states.front ( ) != HealerState::DEAD )
+			if ( healers.states.front ( ) == HealerState::FOLLOW )
 			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
@@ -571,10 +701,21 @@ void SceneKinematics::Update ( double dt )
 				};
 				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
 				{
-					leaders.healths [ leader_index ] -= damage;
-					if ( leaders.healths [ leader_index ] <= 0 )
+					if ( tanks.states.front ( ) == TankState::TAUNT )
 					{
-						leaders.states [ leader_index ] = LeaderState::DEAD;
+						tanks.healths.front ( ) -= damage;
+						if ( tanks.healths.front ( ) <= 0 )
+						{
+							tanks.states.front ( ) = TankState::DEAD;
+						}
+					}
+					else
+					{
+						leaders.healths [ leader_index ] -= damage;
+						if ( leaders.healths [ leader_index ] <= 0 )
+						{
+							leaders.states [ leader_index ] = LeaderState::DEAD;
+						}
 					}
 				};
 			}
@@ -585,15 +726,15 @@ void SceneKinematics::Update ( double dt )
 			{
 				leaders.states.front ( ) = LeaderState::ATTACK;
 			}
-			if ( archers.states.front ( ) != ArcherState::DEAD )
+			if ( archers.states.front ( ) == ArcherState::FOLLOW )
 			{
 				archers.states.front ( ) = ArcherState::ATTACK;
 			}
-			if ( tanks.states.front ( ) != TankState::DEAD )
+			if ( tanks.states.front ( ) == TankState::FOLLOW )
 			{
 				tanks.states.front ( ) = TankState::ATTACK;
 			}
-			if ( healers.states.front ( ) != HealerState::DEAD )
+			if ( healers.states.front ( ) == HealerState::FOLLOW )
 			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
@@ -614,7 +755,7 @@ void SceneKinematics::Update ( double dt )
 					new_target_is_closer = true;
 				}
 			}
-			if ( (monsters.states [ monster_index ] == MonsterState::WAIT || new_target_is_closer) && healers.states[ healer_index] != HealerState::DEAD )
+			if ( (monsters.states [ monster_index ] == MonsterState::WAIT || new_target_is_closer) && healers.states[ healer_index] != HealerState::DEAD && healers.states[ healer_index] != HealerState::CLOAK )
 			{
 				monsters.states [ monster_index ] = MonsterState::ATTACK;
 				monsters.TargetIsDead [ monster_index ] = [ = ]
@@ -633,10 +774,21 @@ void SceneKinematics::Update ( double dt )
 				};
 				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
 				{
-					healers.healths [ healer_index ] -= damage;
-					if ( healers.healths [ healer_index ] <= 0 )
+					if ( tanks.states.front ( ) == TankState::TAUNT )
 					{
-						healers.states [ healer_index ] = HealerState::DEAD;
+						tanks.healths.front ( ) -= damage;
+						if ( tanks.healths.front ( ) <= 0 )
+						{
+							tanks.states.front ( ) = TankState::DEAD;
+						}
+					}
+					else
+					{
+						healers.healths [ healer_index ] -= damage;
+						if ( healers.healths [ healer_index ] <= 0 )
+						{
+							healers.states [ healer_index ] = HealerState::DEAD;
+						}
 					}
 				};
 			}
@@ -647,15 +799,15 @@ void SceneKinematics::Update ( double dt )
 			{
 				leaders.states.front ( ) = LeaderState::ATTACK;
 			}
-			if ( archers.states.front ( ) != ArcherState::DEAD )
+			if ( archers.states.front ( ) == ArcherState::FOLLOW )
 			{
 				archers.states.front ( ) = ArcherState::ATTACK;
 			}
-			if ( tanks.states.front ( ) != TankState::DEAD )
+			if ( tanks.states.front ( ) == TankState::FOLLOW )
 			{
 				tanks.states.front ( ) = TankState::ATTACK;
 			}
-			if ( healers.states.front ( ) != HealerState::DEAD )
+			if ( healers.states.front ( ) == HealerState::FOLLOW )
 			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
@@ -695,10 +847,21 @@ void SceneKinematics::Update ( double dt )
 				};
 				monsters.DamageTarget [ monster_index ] = [ = ] ( const float damage )
 				{
-					tanks.healths [ tank_index ] -= damage;
-					if ( tanks.healths [ tank_index ] <= 0 )
+					if ( tanks.states.front ( ) == TankState::TAUNT )
 					{
-						tanks.states [ tank_index ] = TankState::DEAD;
+						tanks.healths.front ( ) -= damage;
+						if ( tanks.healths.front ( ) <= 0 )
+						{
+							tanks.states.front ( ) = TankState::DEAD;
+						}
+					}
+					else
+					{
+						tanks.healths [ tank_index ] -= damage;
+						if ( tanks.healths [ tank_index ] <= 0 )
+						{
+							tanks.states [ tank_index ] = TankState::DEAD;
+						}
 					}
 				};
 			}
@@ -709,15 +872,15 @@ void SceneKinematics::Update ( double dt )
 			{
 				leaders.states.front ( ) = LeaderState::ATTACK;
 			}
-			if ( archers.states.front ( ) != ArcherState::DEAD )
+			if ( archers.states.front ( ) == ArcherState::FOLLOW )
 			{
 				archers.states.front ( ) = ArcherState::ATTACK;
 			}
-			if ( tanks.states.front ( ) != TankState::DEAD )
+			if ( tanks.states.front ( ) == TankState::FOLLOW )
 			{
 				tanks.states.front ( ) = TankState::ATTACK;
 			}
-			if ( healers.states.front ( ) != HealerState::DEAD )
+			if ( healers.states.front ( ) == HealerState::FOLLOW )
 			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
@@ -730,6 +893,10 @@ void SceneKinematics::Update ( double dt )
 	{
 		if ( monsters.states [ monster_index ] != MonsterState::DEAD )
 		{
+			const Vector3 position = arrows.positions [ arrow_index ];
+
+			Create_dmgIndicator ( position + ( 0, 9, 0 ), arrows.default_damage );
+
 			arrows.deads [ arrow_index ] = true;
 			monsters.GetDamage ( monster_index, arrows.default_damage );
 		}
@@ -771,10 +938,12 @@ void SceneKinematics::RenderText(Mesh* mesh, std::string text, Color color)
 	glEnable(GL_DEPTH_TEST);
 }
 
-void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color color, float size, float x, float y)
+void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color color, float size, float x, float y, const bool middle)
 {
 	if(!mesh || mesh->textureID <= 0)
 		return;
+
+	const float spacing = 1.f;
 
 	glDisable(GL_DEPTH_TEST);
 	Mtx44 ortho;
@@ -785,7 +954,14 @@ void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color col
 	viewStack.LoadIdentity();
 	modelStack.PushMatrix();
 	modelStack.LoadIdentity();
-	modelStack.Translate(x, y, 0);
+	if ( middle )
+	{
+		modelStack.Translate ( x - ( ( text.length ( ) * 0.5f - 0.25f) * spacing * size ), y, 0 );
+	}
+	else
+	{
+		modelStack.Translate ( x, y, 0 );
+	}
 	modelStack.Scale(size, size, size);
 	glUniform1i(m_parameters[U_TEXT_ENABLED], 1);
 	glUniform3fv(m_parameters[U_TEXT_COLOR], 1, &color.r);
@@ -797,11 +973,12 @@ void SceneKinematics::RenderTextOnScreen(Mesh* mesh, std::string text, Color col
 	for(unsigned i = 0; i < text.length(); ++i)
 	{
 		Mtx44 characterSpacing;
-		characterSpacing.SetToTranslation(i * 1.0f + 0.5f, 0.5f, 0); //1.0f is the spacing of each character, you may change this value
+		const std::size_t num_verts = 6;
+		characterSpacing.SetToTranslation ( i * spacing + 0.5f, 0.5f, 0 );
 		Mtx44 MVP = projectionStack.Top() * viewStack.Top() * modelStack.Top() * characterSpacing;
 		glUniformMatrix4fv(m_parameters[U_MVP], 1, GL_FALSE, &MVP.a[0]);
 
-		mesh->Render((unsigned)text[i] * 6, 6);
+		mesh->Render ( ( unsigned ) text [ i ] * num_verts, num_verts );
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUniform1i(m_parameters[U_TEXT_ENABLED], 0);
@@ -928,10 +1105,10 @@ void SceneKinematics::Render()
 	}
 
 	//On screen text
-	std::ostringstream ss;
-	ss.precision(5);
-	ss << "FPS: " << fps;
-	RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 0), 15, 0, 3);
+	//std::ostringstream ss;
+	//ss.precision(5);
+	//ss << "FPS: " << fps;
+	//RenderTextOnScreen(meshList[GEO_TEXT], ss.str(), Color(0, 1, 0), 15, 0, 3);
 
 	//std::ostringstream ss2;
 	//ss2.precision(3);
@@ -962,19 +1139,50 @@ void SceneKinematics::Render()
 			modelStack.Scale ( 2, 2, 1 );
 			RenderMesh ( meshList [ GEO_ARROW ], false );
 			modelStack.PopMatrix ( );
+
 		}
 	}
+	for ( std::size_t index = 0, size = dmg_indicators.size ( ); index < size; ++index )
+	{
+		Dmg_Indicator &dmgIndicator = dmg_indicators[index];
 
+		if ( !dmgIndicator.isDead ( ) )
+		{
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 <<  dmgIndicator.dmg;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, dmgIndicator.position.x, dmgIndicator.position.y + 9, true );
+		}
+	}
+	for ( std::size_t index = 0, size = message_indicators.size ( ); index < size; ++index )
+	{
+		Message_Indicator &msgIndicator = message_indicators [ index ];
+
+		if ( !msgIndicator.isDead ( ) )
+		{
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 << msgIndicator.msg;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, 2,msgIndicator.position.y );
+		}
+	}
 	for ( std::size_t index = 0, size = archers.positions.size ( ); index < size; ++index )
 	{
 		if ( archers.states [ index ] != ArcherState::DEAD )
 		{
+
+			const float health = archers.healths [ index ];
 			const Vector3 position = archers.positions [ index ];
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
 			RenderMesh ( meshList [ GEO_ARCHER ], false );
 			modelStack.PopMatrix ( );
+
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 << "" << health;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, position.x, position.y+9,true );
 		}
 	}
 
@@ -982,12 +1190,18 @@ void SceneKinematics::Render()
 	{
 		if ( monsters.states[ index ] != MonsterState::DEAD )
 		{
+			const float health = monsters.healths [ index ];
 			const Vector3 position = monsters.positions [ index ];
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
 			RenderMesh ( meshList [ GEO_MONSTER ], false );
 			modelStack.PopMatrix ( );
+
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 << "" << health;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, position.x, position.y + 9, true );
 		}
 	}
 	
@@ -995,12 +1209,18 @@ void SceneKinematics::Render()
 	{
 		if ( leaders.states [ index ] != LeaderState::DEAD )
 		{
+			const float health = leaders.healths [ index ];
 			const Vector3 position = leaders.positions [ index ];
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
 			RenderMesh ( meshList [ GEO_LEADER ], false );
 			modelStack.PopMatrix ( );
+
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 << "" << health;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, position.x, position.y + 9, true );
 		}
 	}
 
@@ -1008,12 +1228,18 @@ void SceneKinematics::Render()
 	{
 		if ( healers.states [ index ] != HealerState::DEAD )
 		{
+			const float health = healers.healths [ index ];
 			const Vector3 position = healers.positions [ index ];
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
 			RenderMesh ( meshList [ GEO_HEALER ], false );
 			modelStack.PopMatrix ( );
+
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 << "" << health;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, position.x, position.y + 9, true );
 		}
 	}
 
@@ -1021,12 +1247,18 @@ void SceneKinematics::Render()
 	{
 		if ( tanks.states [ index ] != TankState::DEAD )
 		{
+			const float health = tanks.healths [ index ];
 			const Vector3 position = tanks.positions [ index ];
 			modelStack.PushMatrix ( );
 			modelStack.Translate ( position.x, position.y, position.z );
 			modelStack.Scale ( 9, 9, 1 );
 			RenderMesh ( meshList [ GEO_WORKER ], false );
 			modelStack.PopMatrix ( );
+
+			std::ostringstream ss2;
+			ss2.precision ( 3 );
+			ss2 << "" << health;
+			RenderTextOnScreen ( meshList [ GEO_TEXT ], ss2.str ( ), Color ( 0, 1, 0 ), 10, position.x, position.y + 9, true );
 		}
 	}
 
@@ -1038,6 +1270,8 @@ void SceneKinematics::Render()
 		RenderMesh ( meshList [ GEO_TREASURE ], false );
 		modelStack.PopMatrix ( );
 	}
+
+	RenderMesh ( meshList [ GEO_BOUNDARIES ], false );
 }
 
 void SceneKinematics::Exit()

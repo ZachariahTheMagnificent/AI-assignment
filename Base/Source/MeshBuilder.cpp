@@ -18,6 +18,42 @@ Then generate the VBO/IBO and store them in Mesh object
 \return Pointer to mesh storing VBO/IBO of reference axes
 */
 /******************************************************************************/
+
+Mesh* MeshBuilder::GenerateLines ( const std::string &meshName, const Color color, const std::vector<Line>& lines )
+{
+	Vertex v;
+	std::vector<Vertex> vertex_buffer_data;
+	vertex_buffer_data.resize ( lines.size ( ) * 2 );
+	for ( std::size_t index = 0, size = lines.size ( ); index < size; ++index )
+	{
+		Vertex v;
+		v.pos.Set ( lines [ index ].orgin.x, lines [ index ].orgin.y, lines [ index ].orgin.z );
+		v.color = color;
+		vertex_buffer_data [ index * 2 ] = v;
+		v.pos.Set ( lines [ index ].orgin.x + lines [ index ].vector.x, lines [ index ].orgin.y + lines [ index ].vector.y, lines [ index ].orgin.z + lines [ index ].vector.z );
+		vertex_buffer_data [ index * 2 + 1 ] = v;
+	}
+
+	std::vector<GLuint> index_buffer_data;
+	index_buffer_data.resize ( vertex_buffer_data.size ( ) );
+	for ( std::size_t index = 0, size = index_buffer_data.size ( ); index < size; ++index )
+	{
+		index_buffer_data [ index ] = index;
+	}
+
+	Mesh *mesh = new Mesh ( meshName );
+
+	glBindBuffer ( GL_ARRAY_BUFFER, mesh->vertexBuffer );
+	glBufferData ( GL_ARRAY_BUFFER, vertex_buffer_data.size ( ) * sizeof ( Vertex ), &vertex_buffer_data [ 0 ], GL_STATIC_DRAW );
+	glBindBuffer ( GL_ELEMENT_ARRAY_BUFFER, mesh->indexBuffer );
+	glBufferData ( GL_ELEMENT_ARRAY_BUFFER, index_buffer_data.size ( ) * sizeof ( GLuint ), &index_buffer_data [ 0 ], GL_STATIC_DRAW );
+
+	mesh->indexSize = index_buffer_data.size ( );
+	mesh->mode = Mesh::DRAW_LINES;
+
+	return mesh;
+}
+
 Mesh* MeshBuilder::GenerateAxes(const std::string &meshName, float lengthX, float lengthY, float lengthZ)
 {
 	Vertex v;
