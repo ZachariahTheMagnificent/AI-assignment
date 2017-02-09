@@ -516,12 +516,23 @@ void SceneKinematics::Update ( double dt )
 					}
 				};
 			}
+
+			leaders.targets.front ( ) = monster_index;
+
 			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
 			{
-				leaders.targets.front ( ) = monster_index;
 				leaders.states.front ( ) = LeaderState::ATTACK;
+			}
+			if ( archers.states.front ( ) != ArcherState::DEAD )
+			{
 				archers.states.front ( ) = ArcherState::ATTACK;
+			}
+			if ( tanks.states.front ( ) != TankState::DEAD )
+			{
 				tanks.states.front ( ) = TankState::ATTACK;
+			}
+			if ( healers.states.front ( ) != HealerState::DEAD )
+			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
 		}
@@ -567,12 +578,23 @@ void SceneKinematics::Update ( double dt )
 					}
 				};
 			}
+
+			leaders.targets.front ( ) = monster_index;
+
 			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
 			{
-				leaders.targets.front ( ) = monster_index;
 				leaders.states.front ( ) = LeaderState::ATTACK;
+			}
+			if ( archers.states.front ( ) != ArcherState::DEAD )
+			{
 				archers.states.front ( ) = ArcherState::ATTACK;
+			}
+			if ( tanks.states.front ( ) != TankState::DEAD )
+			{
 				tanks.states.front ( ) = TankState::ATTACK;
+			}
+			if ( healers.states.front ( ) != HealerState::DEAD )
+			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
 		}
@@ -618,12 +640,23 @@ void SceneKinematics::Update ( double dt )
 					}
 				};
 			}
+
+			leaders.targets.front ( ) = monster_index;
+
 			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
 			{
-				leaders.targets.front ( ) = monster_index;
 				leaders.states.front ( ) = LeaderState::ATTACK;
+			}
+			if ( archers.states.front ( ) != ArcherState::DEAD )
+			{
 				archers.states.front ( ) = ArcherState::ATTACK;
+			}
+			if ( tanks.states.front ( ) != TankState::DEAD )
+			{
 				tanks.states.front ( ) = TankState::ATTACK;
+			}
+			if ( healers.states.front ( ) != HealerState::DEAD )
+			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
 		}
@@ -669,12 +702,23 @@ void SceneKinematics::Update ( double dt )
 					}
 				};
 			}
+
+			leaders.targets.front ( ) = monster_index;
+
 			if ( ( leaders.states.front ( ) == LeaderState::SEARCH_TREASURE || leaders.states.front ( ) == LeaderState::TAKE_TREASURE ) )
 			{
-				leaders.targets.front ( ) = monster_index;
 				leaders.states.front ( ) = LeaderState::ATTACK;
+			}
+			if ( archers.states.front ( ) != ArcherState::DEAD )
+			{
 				archers.states.front ( ) = ArcherState::ATTACK;
+			}
+			if ( tanks.states.front ( ) != TankState::DEAD )
+			{
 				tanks.states.front ( ) = TankState::ATTACK;
+			}
+			if ( healers.states.front ( ) != HealerState::DEAD )
+			{
 				healers.states.front ( ) = HealerState::CLOAK;
 			}
 		}

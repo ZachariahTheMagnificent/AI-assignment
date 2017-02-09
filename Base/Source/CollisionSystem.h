@@ -438,7 +438,7 @@ struct Monsters final
 struct Healers final
 {
 	const float default_speed { 50 };
-	const float default_radius { 5 };
+	const float default_radius { 7 };
 	const float default_health { 100 };
 	const float default_percentage_heal { 30 };
 	const double default_time_until_next_heal { 5 };
@@ -506,7 +506,7 @@ struct Archers final
 struct Tanks final
 {
 	const float default_speed { 45 };
-	const float default_radius { 5 };
+	const float default_radius { 7 };
 	const float default_damage { 40 };
 	const float default_health { 500 };
 	const double default_time_until_next_attack { 1 };
@@ -535,7 +535,7 @@ struct Tanks final
 struct Leaders final
 {
 	const float default_speed { 100 };
-	const float default_radius { 5 };
+	const float default_radius { 7 };
 	const float default_health { 100 };
 	const float default_damage { 20 };
 	const double default_time_until_next_attack { 1 };
