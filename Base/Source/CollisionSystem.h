@@ -21,7 +21,7 @@ public:
 class PhysicsSystem final
 {
 public:
-	void Update ( std::vector<Vector3>& positions, std::vector<Vector3>& directions, std::vector<float>& speeds, const double delta_time )
+	void Update ( std::vector<Vector3>& positions, std::vector<Vector3>& directions, std::vector<float>& speeds, const float delta_time )
 	{
 		for ( std::size_t index = 0, size = positions.size ( ); index < size; ++index )
 		{
@@ -332,7 +332,7 @@ struct Arrows final
 	const float default_speed { 250 };
 	const float default_radius { 2 };
 	const double default_time_until_death { 5 };
-	const double default_dead { false };
+	const bool default_dead { false };
 	const float default_damage { 5 };
 
 	void Create ( const Vector3 position, const Vector3 direction )
@@ -446,7 +446,7 @@ struct Healers final
 	const float default_speed { 50 };
 	const float default_radius { 7 };
 	const float default_health { 100 };
-	const float default_percentage_heal { 0.3 };
+	const float default_percentage_heal { 0.3f };
 	const double default_time_until_cloak { 3 };
 	const HealerState default_state { HealerState::FOLLOW };
 
@@ -585,7 +585,7 @@ struct Dmg_Indicator
 		else
 			return false;
 	}
-	void Update ( double dt )
+	void Update ( const float dt )
 	{
 		if ( !isDead ( ) )
 		{
@@ -617,7 +617,7 @@ struct Message_Indicator
 		else
 			return false;
 	}
-	void Update ( double dt )
+	void Update ( float dt )
 	{
 		if ( !isDead ( ) )
 		{

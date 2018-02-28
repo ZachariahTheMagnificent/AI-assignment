@@ -30,9 +30,6 @@
     <ClCompile Include="Source\CheckIfVectorsCollide.cpp">
       <Filter>Source Files\AI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Utility.cpp">
-      <Filter>Source Files\Base</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Camera.cpp">
       <Filter>Source Files\Base</Filter>
     </ClCompile>
@@ -80,9 +77,6 @@
     <ClInclude Include="Source\GameObject.h">
       <Filter>Header Files\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Geometry.h">
-      <Filter>Header Files\Base</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Light.h">
       <Filter>Header Files\Base</Filter>
     </ClInclude>
@@ -111,9 +105,6 @@
       <Filter>Header Files\Base</Filter>
     </ClInclude>
     <ClInclude Include="Source\shader.hpp">
-      <Filter>Header Files\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Utility.h">
       <Filter>Header Files\Base</Filter>
     </ClInclude>
     <ClInclude Include="Source\Vertex.h">

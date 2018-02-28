@@ -69,7 +69,7 @@ public:
 	~SceneKinematics();
 
 	virtual void Init();
-	virtual void Update(double dt);
+	virtual void Update(const float dt);
 	virtual void Render();
 	virtual void Exit();
 

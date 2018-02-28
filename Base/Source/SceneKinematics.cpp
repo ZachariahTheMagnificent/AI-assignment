@@ -4,7 +4,6 @@
 #include "shader.hpp"
 #include "MeshBuilder.h"
 #include "Application.h"
-#include "Utility.h"
 #include "LoadTGA.h"
 #include <vector>
 #include "Vector3.h"
@@ -144,7 +143,7 @@ void SceneKinematics::Init ( )
 	m_gravity.Set ( 0, -9.8f, 0 ); //init gravity as 9.8ms-2 downwards
 	Math::InitRNG ( );
 
-	m_ghost = new GameObject ( GameObject::GO_BALL );
+	m_ghost = new GameObject ( );
 	//Exercise 1: construct 10 GameObject with type GO_BALL and add into m_goList
 
 	//underwatch.GetArcher ( ).pos = Vector3 ( 250, 50, 0 );
@@ -177,7 +176,7 @@ void SceneKinematics::Init ( )
 	RandomiseTreasureLocation ( );
 }
 
-void SceneKinematics::Update ( double dt )
+void SceneKinematics::Update ( const float dt )
 {
 	//Keyboard Section
 	if ( Application::IsKeyPressed ( '1' ) )
@@ -266,19 +265,6 @@ void SceneKinematics::Update ( double dt )
 	for ( std::vector<GameObject *>::iterator it = m_goList.begin ( ); it != m_goList.end ( ); ++it )
 	{
 		GameObject *go = ( GameObject * ) *it;
-		if ( go->active )
-		{
-			if ( go->type == GameObject::GO_BALL )
-			{
-				//Exercise 2: implement equation 1 & 2
-
-				//Exercise 12: replace Exercise 2 code and use average speed instead
-			}
-
-			//Exercise 8: check collision with GO_CUBE
-
-			//Exercise 5: unspawn ball when outside window
-		}
 	}
 	for ( std::size_t index = 0, size = dmg_indicators.size ( ); index < size; ++index )
 	{
@@ -322,7 +308,7 @@ void SceneKinematics::Update ( double dt )
 					{
 						const Vector3 position = monsters.positions [ index ];
 
-						Create_dmgIndicator (position+(0,9,0), monsters.default_damage );
+						Create_dmgIndicator (position+(0.f,9.f,0.f), monsters.default_damage );
 
 						monsters.DamageTarget [ index ] ( monsters.default_damage );
 
@@ -514,7 +500,7 @@ void SceneKinematics::Update ( double dt )
 					{
 						const Vector3 position = leaders.positions [ index ];
 
-						Create_dmgIndicator ( position + ( 0, 9, 0 ), leaders.default_damage );
+						Create_dmgIndicator ( position + ( 0.f, 9.f, 0.f ), leaders.default_damage );
 
 						monsters.GetDamage ( leaders.targets [ index ], leaders.default_damage );
 						leaders.time_until_next_attacks [ index ] = leaders.default_time_until_next_attack;
@@ -571,7 +557,7 @@ void SceneKinematics::Update ( double dt )
 					if ( tanks.time_until_next_attacks [ index ] <= 0 )
 					{
 						Vector3 position = tanks.positions [ index ];
-						Create_dmgIndicator ( position + ( 0, 9, 0 ), tanks.default_damage );
+						Create_dmgIndicator ( position + ( 0.f, 9.f, 0.f ), tanks.default_damage );
 
 						monsters.GetDamage ( leaders.targets.front ( ), tanks.default_damage );
 						tanks.time_until_next_attacks [ index ] = tanks.default_time_until_next_attack;
@@ -895,7 +881,7 @@ void SceneKinematics::Update ( double dt )
 		{
 			const Vector3 position = arrows.positions [ arrow_index ];
 
-			Create_dmgIndicator ( position + ( 0, 9, 0 ), arrows.default_damage );
+			Create_dmgIndicator ( position + ( 0.f, 9.f, 0.f ), arrows.default_damage );
 
 			arrows.deads [ arrow_index ] = true;
 			monsters.GetDamage ( monster_index, arrows.default_damage );
@@ -1032,15 +1018,6 @@ void SceneKinematics::RenderMesh(Mesh *mesh, bool enableLight)
 
 void SceneKinematics::RenderGO(GameObject *go)
 {
-	switch(go->type)
-	{
-	case GameObject::GO_BALL:
-		//Exercise 3: render a sphere with radius 1
-		break;
-	case GameObject::GO_CUBE:
-
-		break;
-	}
 }
 
 void SceneKinematics::Render()
@@ -1086,23 +1063,12 @@ void SceneKinematics::Render()
 	for (std::vector<GameObject *>::iterator it = m_goList.begin(); it != m_goList.end(); ++it)
 	{
 		GameObject *go = (GameObject *)*it;
-		if (go->active)
-		{
-			RenderGO(go);
-		}
-	}
-	if (m_ghost->active)
-	{
-		RenderGO(m_ghost);
+		RenderGO(go);
 	}
 	//if (underwatch.GetArcher().getHP() <= 50)
 	//{
 	//	RenderTextOnScreen(meshList[GEO_TEXT], "Archer:I need healing!", Color(0, 1, 0), 10, 90, 5);
 	//}
-	else
-	{
-
-	}
 
 	//On screen text
 	//std::ostringstream ss;
